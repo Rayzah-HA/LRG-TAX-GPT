@@ -79,25 +79,62 @@ The `/daily-checkin` command provides personal reflection and planning:
 
 ---
 
+## Newsletter Research Protocol
+
+The `/newsletter-research` command creates authentic, value-first newsletter content:
+
+### What It Does
+
+1. **Gathers sources** - Reads URLs from `/newsletter/sources.md` or asks for them
+2. **Learns your voice** - Analyzes your existing content for tone and style
+3. **Researches competitors** - Launches content-researcher subagent to find trends
+4. **Writes the draft** - Launches newsletter-writer subagent to create content
+5. **Saves outputs** - Research to `/newsletter/research/`, drafts to `/newsletter/drafts/`
+
+### Output Includes
+
+- 3 compelling subject line options
+- Complete 500-800 word draft in your voice
+- Practical takeaways
+- Soft CTA if relevant
+- Research findings and competitor analysis
+
+### Quality Standards
+
+- Sounds like you, not AI
+- Leads with value, not promotion
+- One clear actionable takeaway
+- Scannable format (headers, bullets, short paragraphs)
+- Creates curiosity without clickbait
+
+---
+
 ## Directory Structure
 
 ```
 .claude/
   commands/
-    weekly-checkin.md    # Weekly business metrics check-in
-    daily-checkin.md     # Daily personal reflection
+    weekly-checkin.md      # Weekly business metrics check-in
+    daily-checkin.md       # Daily personal reflection
+    newsletter-research.md # Newsletter research and writing
   subagents/
-    metrics-analyst.md   # Analyzes weekly metrics
-    daily-reflection.md  # Analyzes daily journal entries
+    metrics-analyst.md     # Analyzes weekly metrics
+    daily-reflection.md    # Analyzes daily journal entries
+    content-researcher.md  # Researches newsletter trends
+    newsletter-writer.md   # Writes newsletter drafts
 metrics/
-  metrics-history.md     # Historical metrics data
-  weekly-report-*.md     # Generated weekly reports
+  metrics-history.md       # Historical metrics data
+  weekly-report-*.md       # Generated weekly reports
 journal/
   daily/
-    YYYY-MM-DD.md            # Daily journal entries
-    YYYY-MM-DD-reflection.md # Daily analysis
-ABOUT.md                 # Personal bio and links
-CLAUDE.md                # This file - project context
+    YYYY-MM-DD.md              # Daily journal entries
+    YYYY-MM-DD-reflection.md   # Daily analysis
+newsletter/
+  sources.md               # Newsletter URLs for research
+  research/                # Research findings
+  drafts/                  # Newsletter drafts
+ABOUT.md                   # Personal bio and links
+CLAUDE.md                  # This file - project context
 ```
 
 ---
