@@ -42,8 +42,18 @@ Travel experiences, photography, and destination content
 
 ## Connect
 
-- [LinkedIn](https://linkedin.com/in/larrygraham)
+**Travel Graham**
 - [Instagram](https://instagram.com/travelgraham)
+- [Facebook](https://facebook.com/travelgraham)
+- [TikTok](https://tiktok.com/@travelgraham)
+
+**LRG Tax Services**
+- [Instagram](https://instagram.com/lrgtaxservice)
+- [Facebook](https://facebook.com/lrgtaxservice)
+- [TikTok](https://tiktok.com/@lrgtaxservice)
+
+**Professional**
+- [LinkedIn](https://linkedin.com/in/larrygraham)
 
 ---
 
