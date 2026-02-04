@@ -57,17 +57,45 @@ The `/weekly-checkin` command provides an intelligent weekly review:
 
 ---
 
+## Daily Check-In Protocol
+
+The `/daily-checkin` command provides personal reflection and planning:
+
+### What It Does
+
+1. **Greets you warmly** - Based on time of day
+2. **Asks reflection questions** - Mood, accomplishments, priorities, energy, gratitude
+3. **Saves journal entry** - Stores in `/journal/daily/YYYY-MM-DD.md`
+4. **Analyzes patterns** - Mood trends, energy levels, accomplishment momentum
+5. **Generates insights** - Saved to `/journal/daily/YYYY-MM-DD-reflection.md`
+
+### Tracks Over Time
+
+- Mood and energy patterns
+- Accomplishment streaks
+- Burnout warning signs
+- Gratitude themes
+- Weekly rollups when enough data exists
+
+---
+
 ## Directory Structure
 
 ```
 .claude/
   commands/
-    weekly-checkin.md    # The weekly check-in slash command
+    weekly-checkin.md    # Weekly business metrics check-in
+    daily-checkin.md     # Daily personal reflection
   subagents/
-    metrics-analyst.md   # Subagent for analyzing metrics
+    metrics-analyst.md   # Analyzes weekly metrics
+    daily-reflection.md  # Analyzes daily journal entries
 metrics/
   metrics-history.md     # Historical metrics data
   weekly-report-*.md     # Generated weekly reports
+journal/
+  daily/
+    YYYY-MM-DD.md            # Daily journal entries
+    YYYY-MM-DD-reflection.md # Daily analysis
 ABOUT.md                 # Personal bio and links
 CLAUDE.md                # This file - project context
 ```
