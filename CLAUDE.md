@@ -57,6 +57,35 @@ The `/weekly-checkin` command provides an intelligent weekly review:
 
 ---
 
+## Daily Brief Protocol
+
+The `/daily-brief` command provides a personalized morning news briefing:
+
+**Use at START of day.** (Use `/daily-checkin` at END of day.)
+
+### What It Does
+
+1. **Analyzes your interests** - Scans ABOUT.md, CLAUDE.md, brain dumps, journal
+2. **Searches recent news** - Uses web search for stories from LAST 7 DAYS ONLY
+3. **Curates and contextualizes** - Filters for relevance, explains why each matters
+4. **Delivers brief** - 5-10 stories organized by category
+
+### Categories Covered
+
+- Cybersecurity & Tech (career)
+- Tax & Finance (LRG Tax Services)
+- Travel & Content (Travel Graham)
+- Personal interests (as relevant)
+
+### Quality Standards
+
+- Only news from last 7 days
+- Publication dates on all stories
+- Connection to YOUR specific interests
+- Actionable when possible
+
+---
+
 ## Daily Check-In Protocol
 
 The `/daily-checkin` command provides personal reflection and planning:
@@ -140,11 +169,14 @@ Save raw thoughts to `/braindumps/` as `.md` files. Format: `YYYY-MM-DD.md` or `
 ```
 .claude/
   commands/
+    daily-brief.md          # Morning news briefing
+    daily-checkin.md        # Evening personal reflection
     weekly-checkin.md       # Weekly business metrics check-in
-    daily-checkin.md        # Daily personal reflection
     newsletter-research.md  # Newsletter research and writing
     brain-dump-analysis.md  # Brain dump insight extraction
   subagents/
+    interest-analyzer.md    # Identifies interests for news
+    news-curator.md         # Curates recent relevant news
     metrics-analyst.md      # Analyzes weekly metrics
     daily-reflection.md     # Analyzes daily journal entries
     content-researcher.md   # Researches newsletter trends
