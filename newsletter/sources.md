@@ -4,30 +4,35 @@ URLs for newsletter research and analysis.
 
 ---
 
-## My Newsletters
+## My Content
 
-<!-- Add your newsletter URLs here -->
-- LRG Tax Services: [URL]
-- Travel Graham: [URL]
+### LRG Tax Services
+- https://lrgtaxservice.com/top-5-tax-deductionsevery-real-estate-investor-and-landlord-should-know
+
+### Travel Graham
+- https://travelgraham.net/
 
 ---
 
 ## Competitor Newsletters
 
 ### Tax & Finance
-<!-- Add competitor tax/finance newsletters -->
-- [Newsletter Name]: [URL]
+- **NerdWallet Taxes**: https://www.nerdwallet.com/taxes
+- **TurboTax Community**: https://ttlc.intuit.com/community/articles/community-news-announcements/04/401
 
 ### Travel & Content
-<!-- Add competitor travel newsletters -->
-- [Newsletter Name]: [URL]
+- **Travel Noire**: https://www.travelnoire.com
+- **The Catch Me If You Can**: https://thecatchmeifyoucan.com/
+- **Black & Abroad**: https://www.blackandabroad.com/
 
 ### Photography & Media
 <!-- Add competitor media newsletters -->
-- [Newsletter Name]: [URL]
 
 ---
 
 ## Notes
 
-Add URLs as you discover newsletters worth tracking. The `/newsletter-research` command will use these for competitive analysis.
+These sources are used by `/newsletter-research` to:
+- Learn your voice from your existing content
+- Analyze competitor trends and topics
+- Find content gaps and opportunities
