@@ -109,32 +109,64 @@ The `/newsletter-research` command creates authentic, value-first newsletter con
 
 ---
 
+## Brain Dump Analysis Protocol
+
+The `/brain-dump-analysis` command extracts insights from stream-of-consciousness writing:
+
+### What It Does
+
+1. **Scans brain dumps** - Reads all files from `/braindumps/`
+2. **Extracts insights** - Launches insight-extractor subagent to find patterns
+3. **Analyzes and visualizes** - Launches brain-dump-analyst for visual output
+4. **Saves analysis** - Stores in `/braindumps/analysis/YYYY-MM-DD-analysis.md`
+
+### Output Includes
+
+- Visual mind map of thoughts
+- Top 10 realizations in your exact words
+- Thinking evolution timeline
+- Hidden connections between ideas
+- Action items extracted
+- Content ideas from your insights
+
+### How to Use
+
+Save raw thoughts to `/braindumps/` as `.md` files. Format: `YYYY-MM-DD.md` or `YYYY-MM-DD-topic.md`
+
+---
+
 ## Directory Structure
 
 ```
 .claude/
   commands/
-    weekly-checkin.md      # Weekly business metrics check-in
-    daily-checkin.md       # Daily personal reflection
-    newsletter-research.md # Newsletter research and writing
+    weekly-checkin.md       # Weekly business metrics check-in
+    daily-checkin.md        # Daily personal reflection
+    newsletter-research.md  # Newsletter research and writing
+    brain-dump-analysis.md  # Brain dump insight extraction
   subagents/
-    metrics-analyst.md     # Analyzes weekly metrics
-    daily-reflection.md    # Analyzes daily journal entries
-    content-researcher.md  # Researches newsletter trends
-    newsletter-writer.md   # Writes newsletter drafts
+    metrics-analyst.md      # Analyzes weekly metrics
+    daily-reflection.md     # Analyzes daily journal entries
+    content-researcher.md   # Researches newsletter trends
+    newsletter-writer.md    # Writes newsletter drafts
+    insight-extractor.md    # Extracts patterns from brain dumps
+    brain-dump-analyst.md   # Visualizes brain dump insights
 metrics/
-  metrics-history.md       # Historical metrics data
-  weekly-report-*.md       # Generated weekly reports
+  metrics-history.md        # Historical metrics data
+  weekly-report-*.md        # Generated weekly reports
 journal/
   daily/
-    YYYY-MM-DD.md              # Daily journal entries
-    YYYY-MM-DD-reflection.md   # Daily analysis
+    YYYY-MM-DD.md               # Daily journal entries
+    YYYY-MM-DD-reflection.md    # Daily analysis
 newsletter/
-  sources.md               # Newsletter URLs for research
-  research/                # Research findings
-  drafts/                  # Newsletter drafts
-ABOUT.md                   # Personal bio and links
-CLAUDE.md                  # This file - project context
+  sources.md                # Newsletter URLs for research
+  research/                 # Research findings
+  drafts/                   # Newsletter drafts
+braindumps/
+  YYYY-MM-DD.md             # Raw brain dump files
+  analysis/                 # Generated analyses
+ABOUT.md                    # Personal bio and links
+CLAUDE.md                   # This file - project context
 ```
 
 ---
