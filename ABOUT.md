@@ -32,10 +32,10 @@ In short: if it's strategic, creative, or quietly powerful—I'm in.
 ### [LRG Tax Services](https://lrgtaxservices.com)
 Tax preparation and planning for individuals and businesses
 
-### [LRG Media](https://lrgmedia.com)
+### [LRG Media](https://lrgmedia.io)
 Real estate, drone, and commercial photography
 
-### [Travel Graham](https://travelgraham.com)
+### [Travel Graham](https://travelgraham.net)
 Travel experiences, photography, and destination content
 
 ---
