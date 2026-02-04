@@ -29,7 +29,7 @@ In short: if it's strategic, creative, or quietly powerful—I'm in.
 
 ## My Work
 
-### [LRG Tax Services](https://lrgtaxservices.com)
+### [LRG Tax Services](https://lrgtaxservice.com)
 Tax preparation and planning for individuals and businesses
 
 ### [LRG Media](https://lrgmedia.io)
@@ -49,4 +49,4 @@ Travel experiences, photography, and destination content
 
 ## Website
 
-Visit my primary hub at **[lrgtaxservices.com](https://lrgtaxservices.com)** or explore the individual brand sites above.
+Visit my primary hub at **[lrgtaxservice.com](https://lrgtaxservice.com)** or explore the individual brand sites above.
