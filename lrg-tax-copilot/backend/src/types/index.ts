@@ -3,7 +3,8 @@ export type InteractionMode =
   | 'MODE-CRD'
   | 'MODE-PLS'
   | 'MODE-ITP'
-  | 'MODE-EDU';
+  | 'MODE-EDU'
+  | 'MODE-QA';
 
 export interface ModeDetectionResult {
   mode: InteractionMode;

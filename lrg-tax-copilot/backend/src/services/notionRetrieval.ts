@@ -476,6 +476,17 @@ function retrievePlaceholder(
       }
       break;
     }
+
+    case 'MODE-QA': {
+      // All topic briefs + policies for general tax questions
+      for (const brief of PLACEHOLDER_TOPIC_BRIEFS) {
+        entries.push(topicBriefToEntry(brief));
+      }
+      for (const policy of PLACEHOLDER_POLICIES) {
+        entries.push(policyToEntry(policy));
+      }
+      break;
+    }
   }
 
   // Enforce total cap
@@ -610,6 +621,29 @@ async function retrieveFromNotion(
         for (const page of briefPages) {
           const parsed = parseTopicBrief(page.id, getProperties(page));
           entries.push(topicBriefToEntry(parsed, true));
+        }
+      }
+      break;
+    }
+
+    case 'MODE-QA': {
+      // All topic briefs + policies for general tax Q&A
+      if (dbIds.topicBriefs) {
+        const briefPages = await queryDatabase(
+          notion, dbIds.topicBriefs, undefined, perDb
+        );
+        for (const page of briefPages) {
+          const parsed = parseTopicBrief(page.id, getProperties(page));
+          entries.push(topicBriefToEntry(parsed));
+        }
+      }
+      if (dbIds.policies) {
+        const policyPages = await queryDatabase(
+          notion, dbIds.policies, ACTIVE_FILTER, perDb
+        );
+        for (const page of policyPages) {
+          const parsed = parsePolicy(page.id, getProperties(page));
+          entries.push(policyToEntry(parsed));
         }
       }
       break;

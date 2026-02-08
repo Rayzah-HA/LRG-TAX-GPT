@@ -9,6 +9,7 @@ const MODE_PRIORITY: InteractionMode[] = [
   'MODE-PLS',
   'MODE-ITP',
   'MODE-EDU',
+  'MODE-QA',
 ];
 
 // ─── Keyword definitions per mode ───────────────────────────────
@@ -106,6 +107,34 @@ const MODE_SIGNALS: Record<InteractionMode, ModeSignals> = {
     ],
     negativeKeywords: ['risk', 'audit', 'penalty', 'fee', 'price', 'client call', 'meeting'],
   },
+
+  'MODE-QA': {
+    keywords: [
+      'what is', 'what are', 'how does', 'how do', 'explain', 'tell me about',
+      'rules for', 'requirements', 'threshold', 'limit', 'deadline',
+      'irs', 'irc', 'section', 'deduction', 'credit', 'filing',
+      'tax law', 'tax rules', 'tax code', 'regulation', 'statute',
+      'standard deduction', 'itemized', 'exemption', 'exclusion',
+      'capital gains', 'depreciation', 'amortization', 'basis',
+      'withholding', 'estimated tax', 'penalty', 'extension',
+      'schedule a', 'schedule b', 'schedule c', 'schedule d', 'schedule e',
+      'form 1040', 'form 1099', 'form w-2', 'form w-4',
+      'qualified', 'eligible', 'phase out', 'income limit',
+    ],
+    patterns: [
+      /what (is|are) (the |a )?(rule|law|requirement|threshold|limit|deadline|rate)/i,
+      /how (does|do) (the |a )?(irs|tax|deduction|credit|filing)/i,
+      /explain (the |a )?(rule|law|provision|section|code|regulation)/i,
+      /tell me about/i,
+      /what (is|are) (the )?(standard deduction|tax bracket|filing deadline)/i,
+      /can (a |the )?(taxpayer|client|person|individual) (deduct|claim|take|use|qualify)/i,
+      /is (this|that|it) (taxable|deductible|excludable|exempt)/i,
+      /when (is|are|do|does) (the |a )?(deadline|due date|extension|payment)/i,
+      /who (qualifies|is eligible|can claim|can deduct)/i,
+      /how much (can|is) (the |a )?(deduction|credit|exclusion|exemption)/i,
+    ],
+    negativeKeywords: ['draft', 'email', 'write', 'compose', 'blog', 'post', 'fee', 'price', 'meeting', 'call'],
+  },
 };
 
 // ─── Scoring constants ──────────────────────────────────────────
@@ -201,6 +230,7 @@ MODE-CRD (Client Response Drafting): Requests to draft, write, or compose emails
 MODE-PLS (Pricing Logic Support): Questions about fees, pricing, scope of engagement, billing, or what services are included.
 MODE-ITP (Internal Talking Points): Requests to prepare for calls, meetings, or conversations — scripts, talking points, discussion prep.
 MODE-EDU (Educational Content): Requests to create blog posts, social media content, FAQs, newsletters, or educational material.
+MODE-QA (General Tax Q&A): General questions about tax law, IRS rules, deductions, credits, filing requirements, thresholds, deadlines, or any tax knowledge question. This is the DEFAULT when the message is a straightforward tax question that doesn't fit the other modes.
 
 Respond with ONLY a JSON object in this exact format:
 {"mode": "MODE-XX", "confidence": 0.XX, "rationale": "brief explanation"}
@@ -279,6 +309,15 @@ export async function detectMode(
   const runnerScore = runner.score;
   const gap = topScore - runnerScore;
 
+  // If all modes score 0, default to MODE-QA (general tax question)
+  if (topScore === 0) {
+    return {
+      mode: 'MODE-QA',
+      confidence: 0.75,
+      rationale: 'Default: no specific mode signals detected, treating as general tax Q&A',
+    };
+  }
+
   // Determine if LLM fallback is needed
   const needsLLM =
     topScore < LOW_CONFIDENCE_THRESHOLD ||
@@ -304,6 +343,7 @@ export async function detectMode(
 export function getClarifyingQuestionTemplate(): string {
   return `I want to make sure I help you in the right way. Could you clarify what you're looking for?
 
+- **Tax law question** — General questions about tax rules, deductions, credits, deadlines, or IRS guidance
 - **Risk review** — Evaluating whether a tax position is defensible
 - **Client response** — Drafting an email, letter, or message to a client
 - **Pricing/scope** — Checking fees, what's included, or engagement scope

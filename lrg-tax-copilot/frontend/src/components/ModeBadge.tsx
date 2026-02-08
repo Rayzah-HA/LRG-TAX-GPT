@@ -37,6 +37,12 @@ const MODE_CONFIG: Record<string, { label: string; color: string; bg: string; bo
     bg: 'bg-yellow-900/30',
     border: 'border-yellow-800',
   },
+  'MODE-QA': {
+    label: 'Tax Q&A',
+    color: 'text-cyan-300',
+    bg: 'bg-cyan-900/30',
+    border: 'border-cyan-800',
+  },
 };
 
 export default function ModeBadge({ mode, confidence, clarificationRequired }: ModeBadgeProps) {

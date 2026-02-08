@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import config from '../config';
 import { InteractionMode, RetrievedEntry } from '../types';
 import { SYSTEM_PROMPT_V1 } from '../prompts/systemPromptV1';
+import { loadKnowledgeBase } from './knowledgeBase';
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -96,6 +97,16 @@ const MODE_CONTEXT: Record<InteractionMode, string> = {
     'The user wants to create educational or marketing content (blog, social media, FAQ). ' +
     'Produce accurate, general-audience tax education. Never include firm-internal guidance. ' +
     'Use plain language and include appropriate disclaimers about seeking professional advice.',
+
+  'MODE-QA':
+    'INTERACTION MODE: General Tax Q&A (MODE-QA)\n' +
+    'The user is asking a general question about tax law, IRS rules, deductions, credits, ' +
+    'filing requirements, thresholds, deadlines, or other tax knowledge. Provide a clear, ' +
+    'accurate answer grounded in the tax knowledge base and retrieved content. Cite IRC ' +
+    'sections, IRS publications, or other authority when possible. Use conditional language ' +
+    '("generally," "in most cases") as tax rules have exceptions. If the knowledge base ' +
+    'contains relevant information, use it. If not, answer from general tax knowledge but ' +
+    'note that the user may want to verify against current IRS guidance.',
 };
 
 // ─── Retrieved context block ────────────────────────────────────
@@ -129,6 +140,24 @@ ${sections.join('\n\n---\n\n')}
 End of retrieved content. If the user's question is not addressed by the above, say so and recommend the preparer consult the firm's full policy documentation.`;
 }
 
+// ─── Knowledge base block ───────────────────────────────────────
+
+function buildKnowledgeBaseBlock(): string {
+  const kb = loadKnowledgeBase();
+  if (!kb) return '';
+
+  return `
+═══════════════════════════════════════
+  TAX KNOWLEDGE BASE
+═══════════════════════════════════════
+
+The following tax law reference material has been loaded from the firm's knowledge base. Use this to answer tax questions accurately. This content is authoritative for the firm's purposes.
+
+${kb}
+
+End of tax knowledge base.`;
+}
+
 // ─── Assemble full system prompt ────────────────────────────────
 
 function buildSystemPrompt(
@@ -140,6 +169,7 @@ function buildSystemPrompt(
     SYSTEM_PROMPT_V1,
     '',
     MODE_CONTEXT[mode],
+    buildKnowledgeBaseBlock(),
     buildGuardrailBlock(guardrailFlags),
     buildRetrievedContextBlock(retrievedContent),
   ];
