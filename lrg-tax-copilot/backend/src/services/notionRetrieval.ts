@@ -98,14 +98,92 @@ const PLACEHOLDER_TEMPLATES: ParsedTemplate[] = [
 const PLACEHOLDER_PRICING_RULES: ParsedPricingRule[] = [
   {
     id: 'PRC-001',
-    name: 'Individual Return Base Pricing',
+    name: 'Single Filer Return',
     serviceType: 'Individual Tax Return',
     basePrice: 250,
     conditions:
-      'Base price covers Form 1040 with standard deductions and W-2 income only. ' +
-      'Additional schedules: Schedule C (+$150), Schedule D (+$75), Schedule E (+$100), ' +
-      'Rental properties (+$100 each). State returns: +$50 per state. Itemized ' +
-      'deductions: +$75. Rush processing (under 48 hours): +50% surcharge.',
+      'Base price for Single filing status (Form 1040).',
+    guardrailFlags: ['NO_ESTIMATES'],
+  },
+  {
+    id: 'PRC-002',
+    name: 'Married Filing Jointly Return',
+    serviceType: 'Individual Tax Return',
+    basePrice: 350,
+    conditions:
+      'Base price for Married Filing Jointly status (Form 1040).',
+    guardrailFlags: ['NO_ESTIMATES'],
+  },
+  {
+    id: 'PRC-003',
+    name: 'Married Filing Separately Return',
+    serviceType: 'Individual Tax Return',
+    basePrice: 350,
+    conditions:
+      'Base price for Married Filing Separately status (Form 1040).',
+    guardrailFlags: ['NO_ESTIMATES'],
+  },
+  {
+    id: 'PRC-004',
+    name: 'Standard Deduction Add-On',
+    serviceType: 'Add-On',
+    basePrice: 175,
+    conditions:
+      'Additional charge for standard deduction processing.',
+    guardrailFlags: ['NO_ESTIMATES'],
+  },
+  {
+    id: 'PRC-005',
+    name: 'Schedule C Add-On',
+    serviceType: 'Add-On',
+    basePrice: 150,
+    conditions:
+      'Additional charge for Schedule C (Profit or Loss from Business) preparation.',
+    guardrailFlags: ['NO_ESTIMATES'],
+  },
+  {
+    id: 'PRC-006',
+    name: 'Sole Proprietorship Return',
+    serviceType: 'Business Tax Return',
+    basePrice: 300,
+    conditions:
+      'Base price for Sole Proprietorship tax preparation.',
+    guardrailFlags: ['NO_ESTIMATES'],
+  },
+  {
+    id: 'PRC-007',
+    name: 'S-Corporation Return (Form 1120S)',
+    serviceType: 'Business Tax Return',
+    basePrice: 600,
+    conditions:
+      'Base price for S-Corporation (Form 1120S) tax preparation.',
+    guardrailFlags: ['NO_ESTIMATES'],
+  },
+  {
+    id: 'PRC-008',
+    name: 'C-Corporation Return (Form 1120)',
+    serviceType: 'Business Tax Return',
+    basePrice: 650,
+    conditions:
+      'Base price for C-Corporation (Form 1120) tax preparation.',
+    guardrailFlags: ['NO_ESTIMATES'],
+  },
+  {
+    id: 'PRC-009',
+    name: 'Partnership Return (Form 1065)',
+    serviceType: 'Business Tax Return',
+    basePrice: 550,
+    conditions:
+      'Base price for Partnership (Form 1065) tax preparation.',
+    guardrailFlags: ['NO_ESTIMATES'],
+  },
+  {
+    id: 'PRC-010',
+    name: 'Nonprofit Return (Form 990)',
+    serviceType: 'Business Tax Return',
+    basePrice: 500,
+    conditions:
+      'Base price for Nonprofit (Form 990 series) tax preparation.',
     guardrailFlags: ['NO_ESTIMATES'],
   },
 ];
