@@ -11,11 +11,13 @@ dist/
 .next/
 out/
 
-# SQLite databases
+# Database files
 *.db
 *.db-journal
 *.db-wal
 *.db-shm
+database/users.json
+database/logs.json
 
 # Next.js generated
 next-env.d.ts

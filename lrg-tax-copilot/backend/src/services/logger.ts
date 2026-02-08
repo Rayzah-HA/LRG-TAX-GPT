@@ -1,47 +1,11 @@
-import Database from 'better-sqlite3';
 import { v4 as uuidv4 } from 'uuid';
+import fs from 'fs';
 import path from 'path';
 import { InteractionMode } from '../types';
 
-// ─── Database initialization ────────────────────────────────────
+// ─── JSON file storage ──────────────────────────────────────────
 
-const DB_PATH = path.join(__dirname, '../../database/logs.db');
-
-let db: Database.Database;
-
-function getDb(): Database.Database {
-  if (!db) {
-    db = new Database(DB_PATH);
-    db.pragma('journal_mode = WAL');
-    initializeSchema();
-  }
-  return db;
-}
-
-function initializeSchema(): void {
-  getDb().exec(`
-    CREATE TABLE IF NOT EXISTS request_logs (
-      id TEXT PRIMARY KEY,
-      timestamp TEXT NOT NULL DEFAULT (datetime('now')),
-      session_id TEXT NOT NULL,
-      user_id TEXT,
-      mode TEXT NOT NULL,
-      confidence REAL NOT NULL,
-      databases_queried TEXT NOT NULL DEFAULT '[]',
-      entries_retrieved INTEGER NOT NULL DEFAULT 0,
-      guardrail_flags_triggered TEXT NOT NULL DEFAULT '[]',
-      failure_state TEXT,
-      response_delivered INTEGER NOT NULL DEFAULT 1,
-      clarification_required INTEGER NOT NULL DEFAULT 0
-    )
-  `);
-
-  getDb().exec(`
-    CREATE INDEX IF NOT EXISTS idx_logs_session ON request_logs (session_id);
-    CREATE INDEX IF NOT EXISTS idx_logs_user ON request_logs (user_id);
-    CREATE INDEX IF NOT EXISTS idx_logs_timestamp ON request_logs (timestamp DESC);
-  `);
-}
+const DB_PATH = path.join(__dirname, '../../database/logs.json');
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -56,21 +20,6 @@ export interface LogEntry {
   failureState?: string;
   responseDelivered: boolean;
   clarificationRequired: boolean;
-}
-
-interface LogRow {
-  id: string;
-  timestamp: string;
-  session_id: string;
-  user_id: string | null;
-  mode: string;
-  confidence: number;
-  databases_queried: string;
-  entries_retrieved: number;
-  guardrail_flags_triggered: string;
-  failure_state: string | null;
-  response_delivered: number;
-  clarification_required: number;
 }
 
 export interface LogRecord {
@@ -88,21 +37,25 @@ export interface LogRecord {
   clarificationRequired: boolean;
 }
 
-function rowToRecord(row: LogRow): LogRecord {
-  return {
-    id: row.id,
-    timestamp: row.timestamp,
-    sessionId: row.session_id,
-    userId: row.user_id,
-    mode: row.mode,
-    confidence: row.confidence,
-    databasesQueried: JSON.parse(row.databases_queried),
-    entriesRetrieved: row.entries_retrieved,
-    guardrailFlagsTriggered: JSON.parse(row.guardrail_flags_triggered),
-    failureState: row.failure_state,
-    responseDelivered: row.response_delivered === 1,
-    clarificationRequired: row.clarification_required === 1,
-  };
+interface LogStore {
+  logs: LogRecord[];
+}
+
+function readStore(): LogStore {
+  try {
+    const data = fs.readFileSync(DB_PATH, 'utf-8');
+    return JSON.parse(data);
+  } catch {
+    return { logs: [] };
+  }
+}
+
+function writeStore(store: LogStore): void {
+  const dir = path.dirname(DB_PATH);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  fs.writeFileSync(DB_PATH, JSON.stringify(store, null, 2), 'utf-8');
 }
 
 // ─── Public API ─────────────────────────────────────────────────
@@ -110,61 +63,47 @@ function rowToRecord(row: LogRow): LogRecord {
 
 export function logRequest(entry: LogEntry): string {
   const id = uuidv4();
+  const store = readStore();
 
-  getDb()
-    .prepare(
-      `INSERT INTO request_logs
-        (id, session_id, user_id, mode, confidence, databases_queried,
-         entries_retrieved, guardrail_flags_triggered, failure_state,
-         response_delivered, clarification_required)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    )
-    .run(
-      id,
-      entry.sessionId,
-      entry.userId || null,
-      entry.mode,
-      entry.confidence,
-      JSON.stringify(entry.databasesQueried),
-      entry.entriesRetrieved,
-      JSON.stringify(entry.guardrailFlagsTriggered),
-      entry.failureState || null,
-      entry.responseDelivered ? 1 : 0,
-      entry.clarificationRequired ? 1 : 0
-    );
+  const record: LogRecord = {
+    id,
+    timestamp: new Date().toISOString(),
+    sessionId: entry.sessionId,
+    userId: entry.userId || null,
+    mode: entry.mode,
+    confidence: entry.confidence,
+    databasesQueried: entry.databasesQueried,
+    entriesRetrieved: entry.entriesRetrieved,
+    guardrailFlagsTriggered: entry.guardrailFlagsTriggered,
+    failureState: entry.failureState || null,
+    responseDelivered: entry.responseDelivered,
+    clarificationRequired: entry.clarificationRequired,
+  };
+
+  store.logs.push(record);
+  writeStore(store);
 
   return id;
 }
 
 export function getLogsBySession(sessionId: string): LogRecord[] {
-  const rows = getDb()
-    .prepare(
-      'SELECT * FROM request_logs WHERE session_id = ? ORDER BY timestamp ASC'
-    )
-    .all(sessionId) as LogRow[];
-
-  return rows.map(rowToRecord);
+  const store = readStore();
+  return store.logs
+    .filter((l) => l.sessionId === sessionId)
+    .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
 }
 
 export function getLogsByUser(userId: string, limit: number = 50): LogRecord[] {
-  const rows = getDb()
-    .prepare(
-      'SELECT * FROM request_logs WHERE user_id = ? ORDER BY timestamp DESC LIMIT ?'
-    )
-    .all(userId, limit) as LogRow[];
-
-  return rows.map(rowToRecord);
+  const store = readStore();
+  return store.logs
+    .filter((l) => l.userId === userId)
+    .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+    .slice(0, limit);
 }
 
 export function getRecentLogs(limit: number = 100): LogRecord[] {
-  const rows = getDb()
-    .prepare(
-      'SELECT * FROM request_logs ORDER BY timestamp DESC LIMIT ?'
-    )
-    .all(limit) as LogRow[];
-
-  return rows.map(rowToRecord);
+  const store = readStore();
+  return store.logs
+    .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+    .slice(0, limit);
 }
-
-// Initialize on import
-getDb();

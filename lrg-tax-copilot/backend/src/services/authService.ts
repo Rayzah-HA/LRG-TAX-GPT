@@ -1,7 +1,7 @@
-import Database from 'better-sqlite3';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
+import fs from 'fs';
 import path from 'path';
 import config from '../config';
 import {
@@ -12,78 +12,52 @@ import {
   LoginResponse,
 } from '../types/auth';
 
-// ─── Database initialization ────────────────────────────────────
+// ─── JSON file storage ──────────────────────────────────────────
 
-const DB_PATH = path.join(__dirname, '../../database/auth.db');
+const DB_PATH = path.join(__dirname, '../../database/users.json');
 
-let db: Database.Database;
-
-function getDb(): Database.Database {
-  if (!db) {
-    db = new Database(DB_PATH);
-    db.pragma('journal_mode = WAL');
-    db.pragma('foreign_keys = ON');
-    initializeSchema();
-  }
-  return db;
+interface UsersStore {
+  users: User[];
 }
 
-function initializeSchema(): void {
-  getDb().exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id TEXT PRIMARY KEY,
-      username TEXT UNIQUE NOT NULL,
-      password_hash TEXT NOT NULL,
-      role TEXT NOT NULL CHECK (role IN ('staff', 'firm_owner')),
-      display_name TEXT NOT NULL,
-      email TEXT NOT NULL DEFAULT '',
-      is_active INTEGER NOT NULL DEFAULT 1,
-      created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      last_login TEXT
-    )
-  `);
+function readStore(): UsersStore {
+  try {
+    const data = fs.readFileSync(DB_PATH, 'utf-8');
+    return JSON.parse(data);
+  } catch {
+    return { users: [] };
+  }
+}
 
-  // Create default firm_owner if no users exist
-  const count = db.prepare('SELECT COUNT(*) as cnt FROM users').get() as {
-    cnt: number;
-  };
+function writeStore(store: UsersStore): void {
+  const dir = path.dirname(DB_PATH);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  fs.writeFileSync(DB_PATH, JSON.stringify(store, null, 2), 'utf-8');
+}
 
-  if (count.cnt === 0) {
+function initialize(): void {
+  const store = readStore();
+
+  if (store.users.length === 0) {
     const hash = bcrypt.hashSync('changeme123', config.auth.bcryptRounds);
-    db.prepare(
-      `INSERT INTO users (id, username, password_hash, role, display_name, email)
-       VALUES (?, ?, ?, ?, ?, ?)`
-    ).run(uuidv4(), 'admin', hash, 'firm_owner', 'Firm Owner', 'admin@lrgtaxservice.com');
+    store.users.push({
+      id: uuidv4(),
+      username: 'admin',
+      passwordHash: hash,
+      role: 'firm_owner',
+      displayName: 'Firm Owner',
+      email: 'admin@lrgtaxservice.com',
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      lastLogin: null,
+    });
+    writeStore(store);
   }
 }
 
-// ─── Row → type mappers ─────────────────────────────────────────
-
-interface UserRow {
-  id: string;
-  username: string;
-  password_hash: string;
-  role: string;
-  display_name: string;
-  email: string;
-  is_active: number;
-  created_at: string;
-  last_login: string | null;
-}
-
-function rowToUser(row: UserRow): User {
-  return {
-    id: row.id,
-    username: row.username,
-    passwordHash: row.password_hash,
-    role: row.role as UserRole,
-    displayName: row.display_name,
-    email: row.email,
-    isActive: row.is_active === 1,
-    createdAt: row.created_at,
-    lastLogin: row.last_login,
-  };
-}
+// ─── Helpers ────────────────────────────────────────────────────
 
 function userToPublic(user: User): UserPublic {
   return {
@@ -94,8 +68,6 @@ function userToPublic(user: User): UserPublic {
     email: user.email,
   };
 }
-
-// ─── JWT helpers ────────────────────────────────────────────────
 
 function signToken(user: User): string {
   const payload = {
@@ -111,15 +83,12 @@ function signToken(user: User): string {
 // ─── Public API ─────────────────────────────────────────────────
 
 export function login(username: string, password: string): LoginResponse {
-  const row = getDb()
-    .prepare('SELECT * FROM users WHERE username = ?')
-    .get(username) as UserRow | undefined;
+  const store = readStore();
+  const user = store.users.find((u) => u.username === username);
 
-  if (!row) {
+  if (!user) {
     return { success: false, error: 'Invalid username or password' };
   }
-
-  const user = rowToUser(row);
 
   if (!user.isActive) {
     return { success: false, error: 'Account is deactivated' };
@@ -130,9 +99,8 @@ export function login(username: string, password: string): LoginResponse {
   }
 
   // Update last login
-  getDb()
-    .prepare("UPDATE users SET last_login = datetime('now') WHERE id = ?")
-    .run(user.id);
+  user.lastLogin = new Date().toISOString();
+  writeStore(store);
 
   const token = signToken(user);
 
@@ -158,15 +126,12 @@ export function refreshToken(token: string): LoginResponse {
     return { success: false, error: 'Invalid or expired token' };
   }
 
-  const row = getDb()
-    .prepare('SELECT * FROM users WHERE id = ?')
-    .get(payload.userId) as UserRow | undefined;
+  const store = readStore();
+  const user = store.users.find((u) => u.id === payload.userId);
 
-  if (!row) {
+  if (!user) {
     return { success: false, error: 'User not found' };
   }
-
-  const user = rowToUser(row);
 
   if (!user.isActive) {
     return { success: false, error: 'Account is deactivated' };
@@ -188,24 +153,29 @@ export function createUser(
   displayName: string,
   email: string
 ): { success: boolean; user?: UserPublic; error?: string } {
-  // Check for existing username
-  const existing = getDb()
-    .prepare('SELECT id FROM users WHERE username = ?')
-    .get(username);
+  const store = readStore();
 
-  if (existing) {
+  if (store.users.some((u) => u.username === username)) {
     return { success: false, error: 'Username already exists' };
   }
 
   const id = uuidv4();
   const hash = bcrypt.hashSync(password, config.auth.bcryptRounds);
 
-  getDb()
-    .prepare(
-      `INSERT INTO users (id, username, password_hash, role, display_name, email)
-       VALUES (?, ?, ?, ?, ?, ?)`
-    )
-    .run(id, username, hash, role, displayName, email);
+  const user: User = {
+    id,
+    username,
+    passwordHash: hash,
+    role,
+    displayName,
+    email,
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    lastLogin: null,
+  };
+
+  store.users.push(user);
+  writeStore(store);
 
   return {
     success: true,
@@ -214,30 +184,23 @@ export function createUser(
 }
 
 export function getAllUsers(): UserPublic[] {
-  const rows = getDb()
-    .prepare('SELECT * FROM users ORDER BY created_at ASC')
-    .all() as UserRow[];
-
-  return rows.map((row) => userToPublic(rowToUser(row)));
+  const store = readStore();
+  return store.users.map(userToPublic);
 }
 
 export function updatePassword(
   userId: string,
   newPassword: string
 ): { success: boolean; error?: string } {
-  const row = getDb()
-    .prepare('SELECT * FROM users WHERE id = ?')
-    .get(userId) as UserRow | undefined;
+  const store = readStore();
+  const user = store.users.find((u) => u.id === userId);
 
-  if (!row) {
+  if (!user) {
     return { success: false, error: 'User not found' };
   }
 
-  const hash = bcrypt.hashSync(newPassword, config.auth.bcryptRounds);
-
-  getDb()
-    .prepare('UPDATE users SET password_hash = ? WHERE id = ?')
-    .run(hash, userId);
+  user.passwordHash = bcrypt.hashSync(newPassword, config.auth.bcryptRounds);
+  writeStore(store);
 
   return { success: true };
 }
@@ -245,17 +208,15 @@ export function updatePassword(
 export function deactivateUser(
   userId: string
 ): { success: boolean; error?: string } {
-  const row = getDb()
-    .prepare('SELECT * FROM users WHERE id = ?')
-    .get(userId) as UserRow | undefined;
+  const store = readStore();
+  const user = store.users.find((u) => u.id === userId);
 
-  if (!row) {
+  if (!user) {
     return { success: false, error: 'User not found' };
   }
 
-  getDb()
-    .prepare('UPDATE users SET is_active = 0 WHERE id = ?')
-    .run(userId);
+  user.isActive = false;
+  writeStore(store);
 
   return { success: true };
 }
@@ -263,20 +224,18 @@ export function deactivateUser(
 export function activateUser(
   userId: string
 ): { success: boolean; error?: string } {
-  const row = getDb()
-    .prepare('SELECT * FROM users WHERE id = ?')
-    .get(userId) as UserRow | undefined;
+  const store = readStore();
+  const user = store.users.find((u) => u.id === userId);
 
-  if (!row) {
+  if (!user) {
     return { success: false, error: 'User not found' };
   }
 
-  getDb()
-    .prepare('UPDATE users SET is_active = 1 WHERE id = ?')
-    .run(userId);
+  user.isActive = true;
+  writeStore(store);
 
   return { success: true };
 }
 
 // Initialize on import
-getDb();
+initialize();
