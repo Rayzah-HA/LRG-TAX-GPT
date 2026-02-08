@@ -15,6 +15,10 @@ out/
 *.db
 *.db-journal
 *.db-wal
+*.db-shm
+
+# Next.js generated
+next-env.d.ts
 
 # OS files
 .DS_Store
