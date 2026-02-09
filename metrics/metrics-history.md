@@ -45,3 +45,29 @@ This file tracks your metrics over time. Each weekly check-in appends new data b
 | Website Visits | ~0 |
 
 ---
+
+### Week of 2026-02-09
+
+**LRG Tax Services**
+| Metric | Value | vs Last Week |
+|--------|-------|--------------|
+| Returns Filed | 6 | +1 📈 |
+| Active Clients | 18 | +1 📈 |
+| Weekly Revenue | $2,274 | +$322 📈 |
+
+**LRG Media**
+| Metric | Value |
+|--------|-------|
+| Active Bookings | 0 (paused for tax season) |
+
+**LRG Tax Social**
+| Metric | Value | vs Last Week |
+|--------|-------|--------------|
+| Content Published | 1 | +1 📈 |
+
+**Travel Graham**
+| Metric | Value |
+|--------|-------|
+| Instagram Followers | 95 (on hold during tax season) |
+
+---
