@@ -8,8 +8,9 @@ import MessageList, { Message } from './MessageList';
 import MessageInput from './MessageInput';
 import ModeBadge from './ModeBadge';
 import MetadataPanel from './MetadataPanel';
+import KnowledgeManager from './KnowledgeManager';
 import { chatApi } from '@/lib/api';
-import { getUser, logout, StoredUser } from '@/lib/auth';
+import { getUser, logout, isFirmOwner as checkFirmOwner, StoredUser } from '@/lib/auth';
 
 interface ChatMetadata {
   detectedMode: string;
@@ -129,6 +130,8 @@ export default function ChatInterface() {
                   </span>
                 </div>
               )}
+
+              <KnowledgeManager isFirmOwner={checkFirmOwner()} />
 
               <button
                 onClick={handleNewChat}

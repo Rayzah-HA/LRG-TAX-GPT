@@ -140,3 +140,66 @@ export const chatApi = {
     });
   },
 };
+
+// ─── Knowledge Base API ──────────────────────────────────────
+
+interface KnowledgeFile {
+  name: string;
+  size: number;
+  modified: string;
+}
+
+interface KnowledgeFilesResponse {
+  success: boolean;
+  files: KnowledgeFile[];
+}
+
+interface UploadResponse {
+  success: boolean;
+  filename: string;
+  originalName: string;
+  extractedLength: number;
+  error?: string;
+}
+
+export const knowledgeApi = {
+  listFiles() {
+    return apiRequest<KnowledgeFilesResponse>('/knowledge/files');
+  },
+
+  async upload(file: File): Promise<UploadResponse> {
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const headers = getAuthHeaders();
+
+    const response = await fetch(`${API_BASE}/knowledge/upload`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    if (response.status === 401) {
+      logout();
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
+      }
+      throw new Error('Session expired. Please log in again.');
+    }
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || `Upload failed with status ${response.status}`);
+    }
+
+    return data as UploadResponse;
+  },
+
+  deleteFile(filename: string) {
+    return apiRequest<{ success: boolean; deleted: string }>(`/knowledge/files/${encodeURIComponent(filename)}`, {
+      method: 'DELETE',
+    });
+  },
+};

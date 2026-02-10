@@ -5,6 +5,7 @@ import rateLimit from 'express-rate-limit';
 import config from './config';
 import authRoutes from './routes/auth';
 import chatRoutes from './routes/chat';
+import knowledgeRoutes from './routes/knowledge';
 
 const app = express();
 
@@ -39,6 +40,7 @@ if (config.nodeEnv === 'production') {
 
 app.use('/auth', authRoutes);
 app.use('/chat', chatRoutes);
+app.use('/knowledge', knowledgeRoutes);
 
 // ─── Health check ───────────────────────────────────────────────
 
