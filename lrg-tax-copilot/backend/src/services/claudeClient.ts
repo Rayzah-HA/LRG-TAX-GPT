@@ -21,9 +21,9 @@ export interface ClaudeCallParams {
 
 const GUARDRAIL_INSTRUCTIONS: Record<string, string> = {
   NO_ESTIMATES:
-    'Do not provide refund, liability, or savings figures — not even ranges, approximations, or comparative amounts.',
+    'Do not generate your own refund, liability, or savings calculations. However, if the preparer provides specific figures from a completed return, use them exactly as given.',
   NO_REFUND_AMOUNTS:
-    'Do not provide refund, liability, or savings figures — not even ranges, approximations, or comparative amounts.',
+    'Do not generate your own refund, liability, or savings calculations. However, if the preparer provides specific figures from a completed return, use them exactly as given.',
   CONSERVATIVE_POSITION:
     'Apply the substantial authority threshold (IRC §6662) to all positions discussed. Flag aggressive positions and present the conservative interpretation first.',
   SUBSTANTIAL_AUTHORITY:
@@ -33,7 +33,7 @@ const GUARDRAIL_INSTRUCTIONS: Record<string, string> = {
   ESCALATION_REQUIRED:
     'This topic requires firm owner review. Recommend escalation and do not provide a final answer.',
   NO_DOLLAR_AMOUNTS:
-    'Do not state specific fee amounts or dollar figures. Explain the pricing logic and factors only.',
+    'Do not state specific fee amounts or dollar figures unless they appear in the retrieved pricing rules.',
 };
 
 function buildGuardrailBlock(flags: string[]): string {
