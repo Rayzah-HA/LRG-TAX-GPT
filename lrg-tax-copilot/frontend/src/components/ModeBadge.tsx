@@ -43,6 +43,12 @@ const MODE_CONFIG: Record<string, { label: string; color: string; bg: string; bo
     bg: 'bg-cyan-900/30',
     border: 'border-cyan-800',
   },
+  'MODE-MTX': {
+    label: 'Tax Matrix',
+    color: 'text-orange-300',
+    bg: 'bg-orange-900/30',
+    border: 'border-orange-800',
+  },
 };
 
 export default function ModeBadge({ mode, confidence, clarificationRequired }: ModeBadgeProps) {

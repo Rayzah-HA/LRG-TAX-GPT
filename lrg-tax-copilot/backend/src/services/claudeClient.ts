@@ -3,6 +3,11 @@ import config from '../config';
 import { InteractionMode, RetrievedEntry } from '../types';
 import { SYSTEM_PROMPT_V1 } from '../prompts/systemPromptV1';
 import { loadKnowledgeBase } from './knowledgeBase';
+import { findBestTemplate, buildTemplateDraftingBlock } from './templateMatcher';
+import { suggestTaxDomeStep, formatTaxDomeStep } from './taxdomeSteps';
+import { isMultiStateQuery, classifyMatrixQuery, buildStateMatrixBlock } from './stateMatrix';
+import { extractCitations, formatCitationBlock, hasCitationSection } from './citationFormatter';
+import { ClientContext, formatClientContext } from './clientIntelligence';
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -15,6 +20,7 @@ export interface ClaudeCallParams {
   }>;
   retrievedContent: RetrievedEntry[];
   guardrailFlags: string[];
+  clientContext?: ClientContext;
 }
 
 // ─── Guardrail flag → enforcement instruction mapping ───────────
@@ -39,7 +45,6 @@ const GUARDRAIL_INSTRUCTIONS: Record<string, string> = {
 function buildGuardrailBlock(flags: string[]): string {
   if (flags.length === 0) return '';
 
-  // Deduplicate instructions (some flags map to the same text)
   const seen = new Set<string>();
   const instructions: string[] = [];
 
@@ -77,8 +82,8 @@ const MODE_CONTEXT: Record<InteractionMode, string> = {
   'MODE-CRD':
     'INTERACTION MODE: Client Response Drafting (MODE-CRD)\n' +
     'The user needs help drafting a communication to a client. Produce professional, clear, ' +
-    'and compliant language. Use any retrieved templates as a starting point. Never include ' +
-    'specific tax advice, estimates, or guarantees in draft communications.',
+    'and compliant language. Use any retrieved templates as a starting point. Include all ' +
+    'preparer-provided figures (refund amounts, credits, deductions) exactly as given.',
 
   'MODE-PLS':
     'INTERACTION MODE: Pricing Logic Support (MODE-PLS)\n' +
@@ -107,6 +112,14 @@ const MODE_CONTEXT: Record<InteractionMode, string> = {
     '("generally," "in most cases") as tax rules have exceptions. If the knowledge base ' +
     'contains relevant information, use it. If not, answer from general tax knowledge but ' +
     'note that the user may want to verify against current IRS guidance.',
+
+  'MODE-MTX':
+    'INTERACTION MODE: Tax Matrix — Multi-State Comparison (MODE-MTX)\n' +
+    'The user is asking a tax question that spans multiple states. Use the State Tax Matrix ' +
+    'data provided below to answer comprehensively. Present results in a clear, formatted ' +
+    'table. Always note that state tax laws change frequently and recommend verifying against ' +
+    'current state Department of Revenue guidance. Include relevant caveats about local taxes ' +
+    '(county, city) that may apply on top of state rates.',
 };
 
 // ─── Retrieved context block ────────────────────────────────────
@@ -140,10 +153,10 @@ ${sections.join('\n\n---\n\n')}
 End of retrieved content. If the user's question is not addressed by the above, say so and recommend the preparer consult the firm's full policy documentation.`;
 }
 
-// ─── Knowledge base block ───────────────────────────────────────
+// ─── Knowledge base block (selective by mode) ───────────────────
 
-function buildKnowledgeBaseBlock(): string {
-  const kb = loadKnowledgeBase();
+function buildKnowledgeBaseBlock(mode: InteractionMode): string {
+  const kb = loadKnowledgeBase(mode);
   if (!kb) return '';
 
   return `
@@ -158,21 +171,64 @@ ${kb}
 End of tax knowledge base.`;
 }
 
+// ─── TaxDome step instruction ──────────────────────────────────
+
+const TAXDOME_INSTRUCTION = `
+═══════════════════════════════════════
+  TAXDOME COMPANION
+═══════════════════════════════════════
+
+This copilot is a TaxDome companion tool. After your main response, if a logical next step exists in TaxDome (moving a client to a pipeline stage, applying a tag, creating a task, or sending a message), include it as a "Suggested Next TaxDome Step" section at the end of your response.
+
+Format it as:
+---
+**Suggested Next TaxDome Step**
+| Field | Value |
+|---|---|
+| **Stage** | [pipeline stage name] |
+| **Tag** | [tag to apply] |
+| **Task** | [task description] |
+| **Action** | [what to do in TaxDome] |
+
+Only include this section when a clear TaxDome action follows from the interaction. Do not force a suggestion if none is appropriate.`;
+
 // ─── Assemble full system prompt ────────────────────────────────
 
 function buildSystemPrompt(
   mode: InteractionMode,
   guardrailFlags: string[],
-  retrievedContent: RetrievedEntry[]
+  retrievedContent: RetrievedEntry[],
+  userMessage: string,
+  clientContext?: ClientContext
 ): string {
   const parts: string[] = [
     SYSTEM_PROMPT_V1,
     '',
     MODE_CONTEXT[mode],
-    buildKnowledgeBaseBlock(),
+    TAXDOME_INSTRUCTION,
+    buildKnowledgeBaseBlock(mode),
     buildGuardrailBlock(guardrailFlags),
     buildRetrievedContextBlock(retrievedContent),
   ];
+
+  // Template-first drafting for MODE-CRD
+  if (mode === 'MODE-CRD') {
+    const matched = findBestTemplate(retrievedContent, userMessage);
+    if (matched) {
+      parts.push(buildTemplateDraftingBlock(matched, userMessage));
+    }
+  }
+
+  // State Tax Matrix for MODE-MTX
+  if (mode === 'MODE-MTX' || isMultiStateQuery(userMessage)) {
+    const queryType = classifyMatrixQuery(userMessage);
+    parts.push(buildStateMatrixBlock(queryType));
+  }
+
+  // Client Intelligence context
+  if (clientContext) {
+    parts.push(formatClientContext(clientContext));
+  }
 
   return parts.filter(Boolean).join('\n\n');
 }
@@ -186,11 +242,13 @@ export async function callClaude(params: ClaudeCallParams): Promise<string> {
     conversationHistory,
     retrievedContent,
     guardrailFlags,
+    clientContext,
   } = params;
 
-  const systemPrompt = buildSystemPrompt(mode, guardrailFlags, retrievedContent);
+  const systemPrompt = buildSystemPrompt(
+    mode, guardrailFlags, retrievedContent, userMessage, clientContext
+  );
 
-  // Build messages array: conversation history + current user message
   const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [
     ...conversationHistory,
     { role: 'user', content: userMessage },
@@ -198,10 +256,13 @@ export async function callClaude(params: ClaudeCallParams): Promise<string> {
 
   const client = new Anthropic({ apiKey: config.anthropicApiKey });
 
+  // Use higher token limit for matrix queries (large table output)
+  const maxTokens = mode === 'MODE-MTX' ? 4096 : 2048;
+
   try {
     const response = await client.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 2048,
+      max_tokens: maxTokens,
       system: systemPrompt,
       messages,
     });
@@ -211,7 +272,25 @@ export async function callClaude(params: ClaudeCallParams): Promise<string> {
       throw new Error('No text content in Claude response');
     }
 
-    return textBlock.text;
+    let result = textBlock.text;
+
+    // Auto-append citation block for research modes if not already present
+    if (['MODE-QA', 'MODE-RR', 'MODE-ITP'].includes(mode) && !hasCitationSection(result)) {
+      const citations = extractCitations(result);
+      if (citations.length > 0) {
+        result += formatCitationBlock(citations);
+      }
+    }
+
+    // If Claude didn't include a TaxDome step and we can suggest one, append it
+    if (!result.includes('Suggested Next TaxDome Step')) {
+      const step = suggestTaxDomeStep(mode, userMessage);
+      if (step) {
+        result += '\n' + formatTaxDomeStep(step);
+      }
+    }
+
+    return result;
   } catch (error) {
     if (error instanceof Anthropic.APIError) {
       const status = error.status;

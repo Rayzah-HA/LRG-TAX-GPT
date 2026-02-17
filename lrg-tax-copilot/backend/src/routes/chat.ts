@@ -6,6 +6,9 @@ import { detectMode, getClarifyingQuestionTemplate } from '../services/modeDetec
 import { retrieveContent, extractKeywords } from '../services/notionRetrieval';
 import { callClaude } from '../services/claudeClient';
 import { logRequest } from '../services/logger';
+import { detectPII } from '../services/piiDetector';
+import { suggestTaxDomeStep } from '../services/taxdomeSteps';
+import { extractClientInfo, getClientContext, ClientContext } from '../services/clientIntelligence';
 import { ChatRequest, ChatResponse } from '../types';
 
 const router = Router();
@@ -25,6 +28,9 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
   const history = Array.isArray(conversationHistory) ? conversationHistory : [];
 
   try {
+    // Step 0: PII detection (warn, don't block)
+    const piiResults = detectPII(userMessage);
+
     // Step 1: Detect mode
     const detection = await detectMode(userMessage);
     const { mode, confidence } = detection;
@@ -54,13 +60,24 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
         retrievedIds: [],
         guardrailFlagsTriggered: [],
         clarificationRequired: true,
+        piiWarnings: piiResults.length > 0
+          ? piiResults.map((p) => ({ type: p.type, redacted: p.redacted }))
+          : undefined,
       };
 
       res.json(response);
       return;
     }
 
-    // Step 3: Retrieve content from Notion based on mode
+    // Step 3: Extract client context (Client Intelligence)
+    const userId = req.user?.userId || 'anonymous';
+    const clientInfo = extractClientInfo(userMessage);
+    let clientContext: ClientContext | null = null;
+    if (clientInfo) {
+      clientContext = getClientContext(userId, clientInfo.clientName);
+    }
+
+    // Step 4: Retrieve content from Notion based on mode
     const topicKeywords = extractKeywords(userMessage);
     const retrieval = await retrieveContent(mode, topicKeywords);
 
@@ -69,16 +86,26 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
       ...new Set(retrieval.retrievedContent.map((e) => e.database)),
     ];
 
-    // Step 4: Call Claude with system prompt + retrieved content + guardrail flags
+    // Step 5: Call Claude with system prompt + retrieved content + guardrail flags
     const assistantMessage = await callClaude({
       mode,
       userMessage,
       conversationHistory: history,
       retrievedContent: retrieval.retrievedContent,
       guardrailFlags: retrieval.guardrailFlagsAggregate,
+      clientContext: clientContext || undefined,
     });
 
-    // Step 5: Log the request (no prompt text stored)
+    // Step 6: Auto-save client context from the conversation
+    if (clientInfo) {
+      const { saveClientContext } = await import('../services/clientIntelligence');
+      saveClientContext(userId, clientInfo);
+    }
+
+    // Step 7: Suggest TaxDome step
+    const taxdomeStep = suggestTaxDomeStep(mode, userMessage) || undefined;
+
+    // Step 8: Log the request (no prompt text stored)
     logRequest({
       sessionId: activeSessionId,
       userId: req.user?.userId,
@@ -91,7 +118,7 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
       clarificationRequired: false,
     });
 
-    // Step 6: Return response
+    // Step 9: Return response
     const response: ChatResponse = {
       success: true,
       sessionId: activeSessionId,
@@ -101,17 +128,28 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
       retrievedIds,
       guardrailFlagsTriggered: retrieval.guardrailFlagsAggregate,
       clarificationRequired: false,
+      piiWarnings: piiResults.length > 0
+        ? piiResults.map((p) => ({ type: p.type, redacted: p.redacted }))
+        : undefined,
+      taxdomeStep,
+      clientContext: clientContext
+        ? {
+            clientName: clientContext.clientName,
+            filingStatus: clientContext.filingStatus,
+            state: clientContext.state,
+            lastInteraction: clientContext.lastInteraction,
+          }
+        : undefined,
     };
 
     res.json(response);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error';
 
-    // Log the failure
     logRequest({
       sessionId: activeSessionId,
       userId: req.user?.userId,
-      mode: 'MODE-RR', // fallback mode for logging
+      mode: 'MODE-RR',
       confidence: 0,
       databasesQueried: [],
       entriesRetrieved: 0,

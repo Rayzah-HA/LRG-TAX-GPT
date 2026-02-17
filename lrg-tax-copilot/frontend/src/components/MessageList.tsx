@@ -28,17 +28,18 @@ export default function MessageList({ messages, isLoading }: MessageListProps) {
             LRG Tax Copilot
           </h2>
           <p className="text-gray-400 text-sm mb-6">
-            Internal AI assistant for LRG Tax Services staff. Ask about tax
-            positions, draft client communications, check pricing, prepare for
-            calls, or create educational content.
+            Everything tax professionals need, in one place. Research with
+            citations, draft communications, compare state taxes, and get
+            automatic client context — all powered by AI.
           </p>
-          <div className="grid grid-cols-1 gap-2 text-left">
+          <div className="grid grid-cols-2 gap-2 text-left">
             {[
-              'Is the home office deduction risky for this client?',
-              'Draft an email requesting missing W-2 documents',
-              'What do we charge for Schedule C add-on?',
-              'Talking points for estimated tax payment call',
-              'Write a blog post about estimated tax payments',
+              'What is IRC §199A and who qualifies for the QBI deduction?',
+              'Draft a refund notification email for John Smith',
+              'Which states have no income tax?',
+              'Compare state tax rates across all 50 states',
+              'What do we charge for S-Corp preparation?',
+              'Write an IRS notice response letter for CP2000',
             ].map((example) => (
               <div
                 key={example}

@@ -18,6 +18,19 @@ interface ChatMetadata {
   retrievedIds: string[];
   guardrailFlagsTriggered: string[];
   clarificationRequired: boolean;
+  piiWarnings?: Array<{ type: string; redacted: string }>;
+  taxdomeStep?: {
+    stage: string;
+    tag: string;
+    task: string;
+    message: string;
+  };
+  clientContext?: {
+    clientName: string;
+    filingStatus?: string;
+    state?: string;
+    lastInteraction: string;
+  };
 }
 
 export default function ChatInterface() {
@@ -76,6 +89,9 @@ export default function ChatInterface() {
         retrievedIds: result.retrievedIds,
         guardrailFlagsTriggered: result.guardrailFlagsTriggered,
         clarificationRequired: result.clarificationRequired,
+        piiWarnings: result.piiWarnings,
+        taxdomeStep: result.taxdomeStep,
+        clientContext: result.clientContext,
       });
 
       const assistantMsg: Message = {
@@ -92,6 +108,15 @@ export default function ChatInterface() {
       setIsLoading(false);
     }
   }
+
+  // Determine if sidebar should show
+  const showSidebar = lastMetadata && (
+    lastMetadata.retrievedIds.length > 0 ||
+    lastMetadata.guardrailFlagsTriggered.length > 0 ||
+    (lastMetadata.piiWarnings && lastMetadata.piiWarnings.length > 0) ||
+    lastMetadata.taxdomeStep ||
+    lastMetadata.clientContext
+  );
 
   return (
     <AuthGuard>
@@ -149,6 +174,19 @@ export default function ChatInterface() {
             </div>
           </header>
 
+          {/* PII Warning banner */}
+          {lastMetadata?.piiWarnings && lastMetadata.piiWarnings.length > 0 && (
+            <div className="mx-4 mt-2 p-3 bg-red-900/20 border border-red-800/50 rounded text-sm text-red-300 flex items-center gap-2">
+              <svg className="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 6zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+              </svg>
+              <span>
+                <strong>PII Detected:</strong> {lastMetadata.piiWarnings.length} potential sensitive item(s) found in your message.
+                Check the sidebar for details.
+              </span>
+            </div>
+          )}
+
           {/* Error banner */}
           {error && (
             <div className="mx-4 mt-2 p-3 bg-red-900/30 border border-red-800 rounded text-sm text-red-300 flex items-center justify-between">
@@ -170,14 +208,15 @@ export default function ChatInterface() {
         </div>
 
         {/* Sidebar - metadata panel */}
-        {lastMetadata &&
-          (lastMetadata.retrievedIds.length > 0 ||
-            lastMetadata.guardrailFlagsTriggered.length > 0) && (
-            <MetadataPanel
-              retrievedIds={lastMetadata.retrievedIds}
-              guardrailFlags={lastMetadata.guardrailFlagsTriggered}
-            />
-          )}
+        {showSidebar && (
+          <MetadataPanel
+            retrievedIds={lastMetadata!.retrievedIds}
+            guardrailFlags={lastMetadata!.guardrailFlagsTriggered}
+            piiWarnings={lastMetadata!.piiWarnings}
+            taxdomeStep={lastMetadata!.taxdomeStep}
+            clientContext={lastMetadata!.clientContext}
+          />
+        )}
       </div>
     </AuthGuard>
   );

@@ -125,6 +125,20 @@ interface ChatResponse {
   retrievedIds: string[];
   guardrailFlagsTriggered: string[];
   clarificationRequired: boolean;
+  piiWarnings?: Array<{ type: string; redacted: string }>;
+  taxdomeStep?: {
+    stage: string;
+    tag: string;
+    task: string;
+    message: string;
+  };
+  clientContext?: {
+    clientName: string;
+    filingStatus?: string;
+    state?: string;
+    lastInteraction: string;
+  };
+  citations?: Array<{ type: string; reference: string }>;
   error?: string;
 }
 
@@ -201,5 +215,27 @@ export const knowledgeApi = {
     return apiRequest<{ success: boolean; deleted: string }>(`/knowledge/files/${encodeURIComponent(filename)}`, {
       method: 'DELETE',
     });
+  },
+};
+
+// ─── Client Intelligence API ─────────────────────────────────
+
+interface ClientSummary {
+  clientName: string;
+  filingStatus?: string;
+  state?: string;
+  businessType?: string;
+  interactions: number;
+  lastInteraction: string;
+}
+
+interface ClientsResponse {
+  success: boolean;
+  clients: ClientSummary[];
+}
+
+export const clientsApi = {
+  list() {
+    return apiRequest<ClientsResponse>('/clients');
   },
 };

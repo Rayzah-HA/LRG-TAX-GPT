@@ -4,7 +4,8 @@ export type InteractionMode =
   | 'MODE-PLS'
   | 'MODE-ITP'
   | 'MODE-EDU'
-  | 'MODE-QA';
+  | 'MODE-QA'
+  | 'MODE-MTX';
 
 export interface ModeDetectionResult {
   mode: InteractionMode;
@@ -48,5 +49,22 @@ export interface ChatResponse {
   retrievedIds: string[];
   guardrailFlagsTriggered: string[];
   clarificationRequired: boolean;
+  piiWarnings?: Array<{ type: string; redacted: string }>;
+  taxdomeStep?: {
+    stage: string;
+    tag: string;
+    task: string;
+    message: string;
+  };
+  clientContext?: {
+    clientName: string;
+    filingStatus?: string;
+    state?: string;
+    lastInteraction: string;
+  };
+  citations?: Array<{
+    type: string;
+    reference: string;
+  }>;
   error?: string;
 }

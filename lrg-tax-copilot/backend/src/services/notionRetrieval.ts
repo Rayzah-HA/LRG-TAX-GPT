@@ -487,6 +487,14 @@ function retrievePlaceholder(
       }
       break;
     }
+
+    case 'MODE-MTX': {
+      // Tax Matrix uses its own state data service; minimal Notion retrieval
+      // Include scope policy for context
+      const scopePolicy = PLACEHOLDER_POLICIES.find((p) => p.id === 'POL-001');
+      if (scopePolicy) entries.push(policyToEntry(scopePolicy));
+      break;
+    }
   }
 
   // Enforce total cap
@@ -676,6 +684,22 @@ async function retrieveFromNotion(
         for (const page of templatePages) {
           const parsed = parseTemplate(page.id, getProperties(page));
           entries.push(templateToEntry(parsed));
+        }
+      }
+      break;
+    }
+
+    case 'MODE-MTX': {
+      // Tax Matrix uses its own state data; minimal Notion retrieval
+      if (dbIds.policies) {
+        const policyPages = await queryDatabase(
+          notion, dbIds.policies, ACTIVE_FILTER, perDb
+        );
+        for (const page of policyPages) {
+          const parsed = parsePolicy(page.id, getProperties(page));
+          if (parsed.name.toLowerCase().includes('scope')) {
+            entries.push(policyToEntry(parsed));
+          }
         }
       }
       break;

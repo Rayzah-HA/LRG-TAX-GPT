@@ -4,6 +4,7 @@ import { InteractionMode, ModeDetectionResult } from '../types';
 
 // ─── Priority order for tie-breaking ────────────────────────────
 const MODE_PRIORITY: InteractionMode[] = [
+  'MODE-MTX',
   'MODE-RR',
   'MODE-CRD',
   'MODE-PLS',
@@ -21,6 +22,28 @@ interface ModeSignals {
 }
 
 const MODE_SIGNALS: Record<InteractionMode, ModeSignals> = {
+  'MODE-MTX': {
+    keywords: [
+      'all states', 'every state', 'state by state', 'across states', 'compare states',
+      'state tax', 'state income tax', 'which states', 'state comparison', 'state matrix',
+      'multi-state', 'multistate', '50 states', 'no income tax', 'tax-free state',
+      'highest state tax', 'lowest state tax', 'state rates', 'state deduction',
+    ],
+    patterns: [
+      /all\s+(?:50\s+)?states/i,
+      /every\s+state/i,
+      /state[\s-]by[\s-]state/i,
+      /across\s+(?:all\s+)?states/i,
+      /compare\s+(?:state|tax)/i,
+      /(?:which|what)\s+states?\s+(?:have|has|don't|do not)/i,
+      /state\s+(?:tax\s+)?(?:comparison|matrix|breakdown|overview)/i,
+      /(?:highest|lowest|best|worst)\s+(?:state\s+)?(?:tax|income tax|rate)/i,
+      /multi[\s-]?state/i,
+      /no\s+(?:state\s+)?income\s+tax/i,
+    ],
+    negativeKeywords: ['draft', 'email', 'write', 'compose', 'blog', 'post'],
+  },
+
   'MODE-RR': {
     keywords: [
       'risk', 'aggressive', 'audit', 'penalty', 'defensible', 'conservative',
@@ -225,8 +248,9 @@ function buildRuleRationale(top: ScoredMode): string {
 
 const LLM_CLASSIFICATION_PROMPT = `You are a mode classifier for a tax firm's internal AI assistant. Given a user message from a tax professional, classify it into exactly one of these interaction modes:
 
+MODE-MTX (Tax Matrix): Multi-state tax comparison queries — questions about tax rates, rules, or policies across multiple states or all 50 states. Use when the user wants to compare states or asks "which states" questions.
 MODE-RR (Risk Review): Questions about tax position risk, audit exposure, defensibility, penalties, or compliance concerns.
-MODE-CRD (Client Response Drafting): Requests to draft, write, or compose emails, letters, or client communications.
+MODE-CRD (Client Response Drafting): Requests to draft, write, or compose emails, letters, memos, IRS responses, or client communications.
 MODE-PLS (Pricing Logic Support): Questions about fees, pricing, scope of engagement, billing, or what services are included.
 MODE-ITP (Internal Talking Points): Requests to prepare for calls, meetings, or conversations — scripts, talking points, discussion prep.
 MODE-EDU (Educational Content): Requests to create blog posts, social media content, FAQs, newsletters, or educational material.
@@ -345,7 +369,8 @@ export function getClarifyingQuestionTemplate(): string {
 
 - **Tax law question** — General questions about tax rules, deductions, credits, deadlines, or IRS guidance
 - **Risk review** — Evaluating whether a tax position is defensible
-- **Client response** — Drafting an email, letter, or message to a client
+- **Client response / Tax Writer** — Drafting an email, letter, memo, or IRS response
+- **Multi-state comparison** — Comparing tax rules across states (Tax Matrix)
 - **Pricing/scope** — Checking fees, what's included, or engagement scope
 - **Talking points** — Preparing for a client call or meeting
 - **Educational content** — Creating a blog post, FAQ, or social media content
