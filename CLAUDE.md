@@ -138,6 +138,38 @@ The `/newsletter-research` command creates authentic, value-first newsletter con
 
 ---
 
+## Skyrim Mod Workshop Protocol
+
+The `/skyrim-mod` command is a full modding workflow for Skyrim Special Edition:
+
+### What It Does
+
+1. **Routes to the right mode** — Script, Design, FOMOD, Conflict, or Reference
+2. **Writes Papyrus scripts** — Launches papyrus-writer subagent for clean, commented `.psc` files
+3. **Designs mod systems** — Architecture docs for quest chains, NPC logic, custom systems
+4. **Generates FOMOD installers** — `ModuleConfig.xml` + `Info.xml` for Nexus distribution
+5. **Resolves mod conflicts** — xEdit patch guidance and load order analysis
+6. **Saves all output** — Files organized in `/skyrim/` directory
+
+### Modes
+
+- **Script** — Write or debug a Papyrus script from plain-English description
+- **Design** — Plan a full mod architecture before touching the Creation Kit
+- **FOMOD** — Generate installer XML for distributing mods on Nexus Mods
+- **Conflict** — Diagnose and fix mod conflicts and load order issues
+- **Reference** — Look up Papyrus events, functions, SKSE APIs
+
+### Output Includes
+
+- Ready-to-compile `.psc` Papyrus source files
+- Creation Kit attachment instructions
+- SKSE64 dependency flags
+- Mod architecture documents
+- FOMOD installer files
+- Conflict resolution steps
+
+---
+
 ## Brain Dump Analysis Protocol
 
 The `/brain-dump-analysis` command extracts insights from stream-of-consciousness writing:
@@ -174,6 +206,7 @@ Save raw thoughts to `/braindumps/` as `.md` files. Format: `YYYY-MM-DD.md` or `
     weekly-checkin.md       # Weekly business metrics check-in
     newsletter-research.md  # Newsletter research and writing
     brain-dump-analysis.md  # Brain dump insight extraction
+    skyrim-mod.md           # Skyrim modding workflow (Script/Design/FOMOD/Conflict)
   subagents/
     interest-analyzer.md    # Identifies interests for news
     news-curator.md         # Curates recent relevant news
@@ -183,6 +216,7 @@ Save raw thoughts to `/braindumps/` as `.md` files. Format: `YYYY-MM-DD.md` or `
     newsletter-writer.md    # Writes newsletter drafts
     insight-extractor.md    # Extracts patterns from brain dumps
     brain-dump-analyst.md   # Visualizes brain dump insights
+    papyrus-writer.md       # Writes Skyrim Papyrus scripts
 metrics/
   metrics-history.md        # Historical metrics data
   weekly-report-*.md        # Generated weekly reports
@@ -197,6 +231,15 @@ newsletter/
 braindumps/
   YYYY-MM-DD.md             # Raw brain dump files
   analysis/                 # Generated analyses
+skyrim/
+  scripts/                  # Papyrus .psc source files
+  mods/
+    MOD-NAME/
+      design.md             # Mod architecture docs
+      fomod/                # FOMOD installer XML
+      notes.md              # Build notes and TODOs
+  conflicts/                # Conflict analysis notes
+  reference/                # Saved function references
 ABOUT.md                    # Personal bio and links
 CLAUDE.md                   # This file - project context
 ```
