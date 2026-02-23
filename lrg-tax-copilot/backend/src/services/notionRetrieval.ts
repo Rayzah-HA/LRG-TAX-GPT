@@ -96,94 +96,135 @@ const PLACEHOLDER_TEMPLATES: ParsedTemplate[] = [
 ];
 
 const PLACEHOLDER_PRICING_RULES: ParsedPricingRule[] = [
+  // ─── 2026 Pricing Model v1.0 ─────────────────────────────────
+  // Individual Returns
   {
     id: 'PRC-001',
-    name: 'Single Filer Return',
+    name: 'Base Individual Return (Form 1040)',
     serviceType: 'Individual Tax Return',
-    basePrice: 250,
+    basePrice: 260,
     conditions:
-      'Base price for Single filing status (Form 1040).',
+      'Base price for any individual filing status (Single, MFJ, MFS, HOH, QSS). ' +
+      'Includes Form 1040 with standard schedules. Filing status does not change the base price.',
     guardrailFlags: ['NO_ESTIMATES'],
   },
   {
     id: 'PRC-002',
-    name: 'Married Filing Jointly Return',
-    serviceType: 'Individual Tax Return',
-    basePrice: 350,
+    name: 'Investment Activity Add-On',
+    serviceType: 'Add-On',
+    basePrice: 90,
     conditions:
-      'Base price for Married Filing Jointly status (Form 1040).',
+      '$90–$150 depending on volume and complexity. Covers Schedule D, ' +
+      'Form 8949, brokerage statements, crypto transactions, and K-1 investment income. ' +
+      'Base $90 for simple portfolios; up to $150 for high-volume trading or crypto.',
     guardrailFlags: ['NO_ESTIMATES'],
   },
   {
     id: 'PRC-003',
-    name: 'Married Filing Separately Return',
-    serviceType: 'Individual Tax Return',
-    basePrice: 350,
+    name: 'Rental Property Add-On (Schedule E)',
+    serviceType: 'Add-On',
+    basePrice: 100,
     conditions:
-      'Base price for Married Filing Separately status (Form 1040).',
+      '+$100 minimum per rental property. Total return minimum is $350 when rental is included. ' +
+      'Covers Schedule E, depreciation (Form 4562), and passive activity rules. ' +
+      'Additional properties may increase the fee.',
     guardrailFlags: ['NO_ESTIMATES'],
   },
+  // Business Returns
   {
     id: 'PRC-004',
-    name: 'Standard Deduction Add-On',
-    serviceType: 'Add-On',
-    basePrice: 175,
+    name: 'Schedule C – Basic (Sole Proprietorship)',
+    serviceType: 'Business Tax Return',
+    basePrice: 400,
     conditions:
-      'Additional charge for standard deduction processing.',
+      '$400–$600 range. For straightforward sole proprietorship / single-member LLC ' +
+      'with clean books and minimal complexity. Includes Schedule C and SE tax calculation.',
     guardrailFlags: ['NO_ESTIMATES'],
   },
   {
     id: 'PRC-005',
-    name: 'Schedule C Add-On',
-    serviceType: 'Add-On',
-    basePrice: 150,
+    name: 'Schedule C – Complex (Sole Proprietorship)',
+    serviceType: 'Business Tax Return',
+    basePrice: 600,
     conditions:
-      'Additional charge for Schedule C (Profit or Loss from Business) preparation.',
+      '$600–$800 range. For sole proprietorships with higher revenue, multiple income streams, ' +
+      'home office, vehicle use, depreciation, or disorganized records requiring cleanup.',
     guardrailFlags: ['NO_ESTIMATES'],
   },
   {
     id: 'PRC-006',
-    name: 'Sole Proprietorship Return',
+    name: 'S-Corporation Return (Form 1120S)',
     serviceType: 'Business Tax Return',
-    basePrice: 300,
+    basePrice: 1200,
     conditions:
-      'Base price for Sole Proprietorship tax preparation.',
+      'Starting at $1,200. S-Corp preparation including Form 1120S, K-1 generation, ' +
+      'officer compensation review, and shareholder basis tracking. ' +
+      'Entity returns are priced separately from personal returns.',
     guardrailFlags: ['NO_ESTIMATES'],
   },
   {
     id: 'PRC-007',
-    name: 'S-Corporation Return (Form 1120S)',
+    name: 'Partnership Return (Form 1065)',
     serviceType: 'Business Tax Return',
-    basePrice: 600,
+    basePrice: 1000,
     conditions:
-      'Base price for S-Corporation (Form 1120S) tax preparation.',
+      '$1,000–$1,500 depending on number of partners and complexity. ' +
+      'Includes Form 1065, partner K-1 preparation, and allocation schedules. ' +
+      'Entity returns are priced separately from personal returns.',
     guardrailFlags: ['NO_ESTIMATES'],
   },
   {
     id: 'PRC-008',
     name: 'C-Corporation Return (Form 1120)',
     serviceType: 'Business Tax Return',
-    basePrice: 650,
+    basePrice: 1200,
     conditions:
-      'Base price for C-Corporation (Form 1120) tax preparation.',
+      'Starting at $1,200. C-Corp preparation including Form 1120, ' +
+      'corporate tax calculation, and shareholder reporting. ' +
+      'Entity returns are priced separately from personal returns.',
     guardrailFlags: ['NO_ESTIMATES'],
   },
   {
     id: 'PRC-009',
-    name: 'Partnership Return (Form 1065)',
-    serviceType: 'Business Tax Return',
-    basePrice: 550,
-    conditions:
-      'Base price for Partnership (Form 1065) tax preparation.',
-    guardrailFlags: ['NO_ESTIMATES'],
-  },
-  {
-    id: 'PRC-010',
     name: 'Nonprofit Return (Form 990)',
     serviceType: 'Business Tax Return',
-    basePrice: 500,
+    basePrice: 1200,
     conditions:
-      'Base price for Nonprofit (Form 990 series) tax preparation.',
+      '$1,200–$2,000+ depending on organization size and complexity. ' +
+      'Covers Form 990, 990-EZ, or 990-N as appropriate. ' +
+      'Includes functional expense allocation and public support testing.',
+    guardrailFlags: ['NO_ESTIMATES'],
+  },
+  // Firm Policies
+  {
+    id: 'PRC-010',
+    name: 'Payment Policy',
+    serviceType: 'Policy',
+    basePrice: 0,
+    conditions:
+      'No work begins before payment is received. All fees are due upfront or per engagement agreement. ' +
+      'Pricing is based on scope and complexity, not filing status alone.',
+    guardrailFlags: ['NO_ESTIMATES', 'NO_DOLLAR_AMOUNTS'],
+  },
+  {
+    id: 'PRC-011',
+    name: 'No Refund Preview Policy',
+    serviceType: 'Policy',
+    basePrice: 0,
+    conditions:
+      'Refund amounts or tax liability projections are never provided before a client is formally engaged. ' +
+      'No previews, estimates, or "what-if" calculations before engagement letter is signed and payment received.',
+    guardrailFlags: ['NO_ESTIMATES', 'NO_REFUND_AMOUNTS'],
+  },
+  {
+    id: 'PRC-012',
+    name: 'Entity Return Pricing Policy',
+    serviceType: 'Policy',
+    basePrice: 0,
+    conditions:
+      'Entity returns (S-Corp, C-Corp, Partnership, Nonprofit) are always priced separately from ' +
+      'personal returns. A business owner filing both an 1120S and a personal 1040 will receive ' +
+      'separate quotes for each return.',
     guardrailFlags: ['NO_ESTIMATES'],
   },
 ];
