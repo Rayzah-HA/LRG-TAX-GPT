@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api';
 import { setToken, setUser, isAuthenticated } from '@/lib/auth';
@@ -12,11 +12,12 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Redirect if already authenticated
-  if (typeof window !== 'undefined' && isAuthenticated()) {
-    router.replace('/');
-    return null;
-  }
+  // Redirect if already authenticated (in useEffect to avoid hydration mismatch)
+  useEffect(() => {
+    if (isAuthenticated()) {
+      router.replace('/');
+    }
+  }, [router]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
