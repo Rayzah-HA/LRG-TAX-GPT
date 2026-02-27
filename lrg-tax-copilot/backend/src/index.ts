@@ -7,6 +7,8 @@ import authRoutes from './routes/auth';
 import chatRoutes from './routes/chat';
 import knowledgeRoutes from './routes/knowledge';
 import clientRoutes from './routes/clients';
+import documentRoutes from './routes/documents';
+import { initTempStorage } from './services/tempStorage';
 
 const app = express();
 
@@ -43,6 +45,10 @@ app.use('/auth', authRoutes);
 app.use('/chat', chatRoutes);
 app.use('/knowledge', knowledgeRoutes);
 app.use('/clients', clientRoutes);
+app.use('/documents', documentRoutes);
+
+// ─── Initialize temp storage (ephemeral file cleanup) ────────
+initTempStorage();
 
 // ─── Health check ───────────────────────────────────────────────
 

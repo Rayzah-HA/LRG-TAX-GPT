@@ -239,3 +239,219 @@ export const clientsApi = {
     return apiRequest<ClientsResponse>('/clients');
   },
 };
+
+// ─── Document Intake API ───────────────────────────────────
+
+export interface DocPageInfo {
+  pageNumber: number;
+  thumbnailUrl: string;
+  status: 'pending' | 'classified' | 'assigned' | 'removed';
+  classification?: {
+    docType: string;
+    entityGuess: string | null;
+    taxYearGuess: string | null;
+    confidence: number;
+    relevance: 'relevant' | 'irrelevant' | 'uncertain';
+  };
+  manualOverrides?: {
+    docType?: string;
+    entityGuess?: string;
+    taxYearGuess?: string;
+    relevance?: 'relevant' | 'irrelevant' | 'uncertain';
+  };
+}
+
+export interface AssembledDoc {
+  docId: string;
+  docType: string;
+  entity: string | null;
+  taxYear: string | null;
+  pageNumbers: number[];
+  notes: string | null;
+}
+
+interface DocUploadResponse {
+  sessionId: string;
+  filename: string;
+  pageCount: number;
+  pages: Array<{ pageNumber: number; thumbnailUrl: string; status: string }>;
+  expiresAt: string;
+}
+
+interface DocSessionResponse {
+  sessionId: string;
+  filename: string;
+  pageCount: number;
+  pages: DocPageInfo[];
+  documents: AssembledDoc[];
+  expiresAt: string;
+  status: string;
+}
+
+interface ClassifyResponse {
+  sessionId: string;
+  classifications: Array<{
+    pageNumber: number;
+    docType: string;
+    entityGuess: string | null;
+    taxYearGuess: string | null;
+    confidence: number;
+    relevance: string;
+  }>;
+}
+
+interface DocSessionSummary {
+  sessionId: string;
+  filename: string;
+  pageCount: number;
+  documentCount: number;
+  status: string;
+  expiresAt: string;
+}
+
+export const documentsApi = {
+  async upload(file: File): Promise<DocUploadResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const headers = getAuthHeaders();
+    const response = await fetch(`${API_BASE}/documents/upload`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    if (response.status === 401) {
+      logout();
+      if (typeof window !== 'undefined') window.location.href = '/login';
+      throw new Error('Session expired.');
+    }
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Upload failed');
+    return data as DocUploadResponse;
+  },
+
+  listSessions() {
+    return apiRequest<DocSessionSummary[]>('/documents/sessions');
+  },
+
+  getSession(sessionId: string) {
+    return apiRequest<DocSessionResponse>(
+      `/documents/sessions/${sessionId}`
+    );
+  },
+
+  classify(sessionId: string, pageNumbers?: number[]) {
+    return apiRequest<ClassifyResponse>(
+      `/documents/sessions/${sessionId}/classify`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ pageNumbers }),
+      }
+    );
+  },
+
+  updatePage(
+    sessionId: string,
+    pageNumber: number,
+    update: {
+      docType?: string;
+      entity?: string;
+      taxYear?: string;
+      relevance?: string;
+    }
+  ) {
+    return apiRequest<DocPageInfo>(
+      `/documents/sessions/${sessionId}/pages/${pageNumber}`,
+      { method: 'PATCH', body: JSON.stringify(update) }
+    );
+  },
+
+  bulkAction(
+    sessionId: string,
+    pageNumbers: number[],
+    action: string,
+    value?: string
+  ) {
+    return apiRequest<{ updated: number; pageNumbers: number[] }>(
+      `/documents/sessions/${sessionId}/pages/bulk`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ pageNumbers, action, value }),
+      }
+    );
+  },
+
+  createDocument(
+    sessionId: string,
+    params: {
+      pageNumbers: number[];
+      docType: string;
+      entity?: string;
+      taxYear?: string;
+      notes?: string;
+    }
+  ) {
+    return apiRequest<AssembledDoc>(
+      `/documents/sessions/${sessionId}/documents`,
+      { method: 'POST', body: JSON.stringify(params) }
+    );
+  },
+
+  deleteDocument(sessionId: string, docId: string) {
+    return apiRequest<{ deleted: string }>(
+      `/documents/sessions/${sessionId}/documents/${docId}`,
+      { method: 'DELETE' }
+    );
+  },
+
+  autoGroup(sessionId: string) {
+    return apiRequest<{ created: AssembledDoc[] }>(
+      `/documents/sessions/${sessionId}/auto-group`,
+      { method: 'POST' }
+    );
+  },
+
+  async exportZip(sessionId: string, folderTemplate?: string): Promise<Blob> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders(),
+    };
+
+    const response = await fetch(
+      `${API_BASE}/documents/sessions/${sessionId}/export`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ folderTemplate }),
+      }
+    );
+
+    if (response.status === 401) {
+      logout();
+      if (typeof window !== 'undefined') window.location.href = '/login';
+      throw new Error('Session expired.');
+    }
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(
+        (data as { error?: string }).error || 'Export failed'
+      );
+    }
+
+    return response.blob();
+  },
+
+  deleteSession(sessionId: string) {
+    return apiRequest<{ deleted: string }>(
+      `/documents/sessions/${sessionId}`,
+      { method: 'DELETE' }
+    );
+  },
+
+  getDocTypes() {
+    return apiRequest<{ docTypes: string[] }>('/documents/doc-types');
+  },
+};
