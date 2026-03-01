@@ -149,7 +149,7 @@ router.post(
   requireAuth,
   requireRole('firm_owner'),
   (req: Request, res: Response) => {
-    const { id } = req.params;
+    const id = String(req.params.id);
 
     if (id === req.user!.userId) {
       res.status(400).json({
@@ -175,7 +175,7 @@ router.post(
   requireAuth,
   requireRole('firm_owner'),
   (req: Request, res: Response) => {
-    const { id } = req.params;
+    const id = String(req.params.id);
     const result = activateUser(id);
 
     if (!result.success) {
@@ -192,7 +192,7 @@ router.post(
   requireAuth,
   requireRole('firm_owner'),
   (req: Request, res: Response) => {
-    const { id } = req.params;
+    const id = String(req.params.id);
     const { newPassword } = req.body;
 
     if (!newPassword || newPassword.length < 8) {

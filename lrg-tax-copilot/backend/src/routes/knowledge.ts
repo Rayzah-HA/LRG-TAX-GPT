@@ -2,7 +2,8 @@ import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import pdf from 'pdf-parse';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const pdf: (buffer: Buffer) => Promise<{ text: string }> = require('pdf-parse');
 import mammoth from 'mammoth';
 import { requireAuth, requireRole } from '../middleware/auth';
 import { listKnowledgeFiles } from '../services/knowledgeBase';
@@ -139,7 +140,7 @@ router.delete(
   requireAuth,
   requireRole('firm_owner'),
   (req: Request, res: Response) => {
-    const { filename } = req.params;
+    const filename = String(req.params.filename);
 
     // Prevent path traversal
     if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
