@@ -21,7 +21,7 @@ Wins:   4 ✅    Big ones
 ✅ Washed clothes      Kept the house running
 ```
 
-Two pieces of nursery furniture in one day. That's not a small Sunday - that's a productive weekend close.
+Two pieces of nursery furniture in one day. That's not a small Sunday.
 
 ---
 
@@ -35,19 +35,18 @@ The nursery is becoming real.
 
 ---
 
-## Pattern: Time as the Enemy
+## Tax Season Momentum
 
 ```
-CHALLENGE THEMES
+TAXES DONE
 ════════════════════════════
-Feb 9:   No car, Uber costs
-Mar 1:   Time
+Feb 6:   ✅ Did taxes
+Feb 7:   ✅ Did taxes
+Feb 9:   ✅ Did a few taxes
+Mar 1:   ✅ Did taxes
 ────────────────────────────
-You're not blocked by ability.
-You're blocked by hours in the day.
+Consistent. Revenue building.
 ```
-
-You're running multiple ventures, prepping for a baby, handling house projects, and maintaining a relationship. Time will always feel tight. That's the season you're in.
 
 ---
 
@@ -55,12 +54,12 @@ You're running multiple ventures, prepping for a baby, handling house projects, 
 
 > "Had a few pain in the ass clients that made me want to make sure all processes are smooth"
 
-This is good instinct. Document what went wrong:
+Good instinct. Turn frustration into systems:
 - What made them difficult?
 - Where did the process break down?
 - What would have prevented the friction?
 
-Turn frustration into systems. That's how you scale.
+Document it. That's how you scale.
 
 ---
 
@@ -70,43 +69,36 @@ Turn frustration into systems. That's how you scale.
 MONDAY MARCH 2
 ──────────────────────────────
 Work         [████████████]  Full day
-Trainer      [████░░░░░░░░]  Session (evening?)
+Trainer      [████░░░░░░░░]  Session
 Taxes        [████░░░░░░░░]  Night shift
 ──────────────────────────────
-Heavy day incoming
+Triple-header incoming
 ```
 
-You've got a triple-header tomorrow. Pace yourself at work so you have gas for trainer + taxes.
+Heavy day. Pace yourself at work so you have energy for trainer + taxes.
 
 ---
 
-## Energy Check
+## Energy Trend
 
 ```
 RECENT ENERGY
 ════════════════════════════
+Feb 6:   ███████░░░  7/10
 Feb 7:   ████░░░░░░  4/10
 Feb 9:   ██████░░░░  6.5/10
 Mar 1:   ██████░░░░  6/10
          ─────────────────
-         Stable but not recharged
+         Stable, not recharged
 ```
 
-Weekend didn't fully restore you. That's fine - you were productive, not resting. Tomorrow's trainer session might actually help boost energy mid-week.
+Weekend was productive, not restful. That's fine - you got major things done.
 
 ---
 
-## Contractor No-Show
+## 3-Week Gap
 
-He never came back. Follow up tomorrow or find someone else. Don't let it linger.
-
----
-
-## Skyrim Permission Granted
-
-You did the work. Nursery furniture built. Taxes done. Clothes washed.
-
-Go quest. You've earned it.
+You checked in Feb 9, then jumped to March 1. That's almost 3 weeks. No judgment - tax season is chaos. But try to keep the habit when you can.
 
 ---
 
