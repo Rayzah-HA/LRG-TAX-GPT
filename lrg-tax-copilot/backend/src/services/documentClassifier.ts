@@ -1,10 +1,11 @@
 import Anthropic from '@anthropic-ai/sdk';
+import fs from 'fs';
 import config from '../config';
 import { PageClassification, DOC_TYPES } from '../types/documents';
 
 // ─── Classification prompt ──────────────────────────────────
 
-const CLASSIFICATION_SYSTEM_PROMPT = `You are a document classification assistant for a tax preparation firm. You analyze extracted text from scanned PDF pages and classify each page.
+const CLASSIFICATION_SYSTEM_PROMPT = `You are a document classification assistant for a tax preparation firm. You analyze scanned PDF pages and classify each page.
 
 Your job:
 1. Identify the document type from this list: ${DOC_TYPES.join(', ')}
@@ -17,8 +18,11 @@ Rules:
 - Be conservative with confidence scores
 - If the page is mostly blank or illegible, classify as "Irrelevant" with low confidence
 - If you see a form number (W-2, 1099, K-1, etc.), use it directly
+- Mortgage statements, loan payoff statements, escrow summaries, and 1098 forms are ALL tax-relevant documents — classify them as "Mortgage Statement" with relevance "relevant"
+- Bank statements, brokerage statements, and financial summaries are tax-relevant
 - For entity names, use exact text as shown (don't correct spelling)
 - For tax year, look for "Tax Year", year in headers, or date ranges
+- When in doubt, lean toward "relevant" or "uncertain" — never classify a real financial document as "irrelevant"
 - Do NOT fabricate information — if you can't determine something, return null
 
 Respond ONLY with valid JSON. No explanation text.`;
@@ -53,29 +57,41 @@ Respond with JSON:
 
 export async function classifyPage(
   pageNumber: number,
-  textContent: string
+  textContent: string,
+  thumbnailPath?: string
 ): Promise<PageClassification> {
-  // Empty or near-empty pages
-  if (!textContent || textContent.trim().length < 20) {
-    return {
-      docType: 'Irrelevant',
-      entityGuess: null,
-      taxYearGuess: null,
-      confidence: 0.95,
-      relevance: 'irrelevant',
-    };
-  }
+  const hasText = textContent && textContent.trim().length >= 20;
+  const hasThumbnail = thumbnailPath && fs.existsSync(thumbnailPath) && fs.statSync(thumbnailPath).size > 0;
 
-  // Try Claude API classification
+  // Try Claude API classification (with vision for sparse/missing text)
   if (config.anthropicApiKey) {
     try {
-      return await classifyWithClaude(pageNumber, textContent);
+      if (hasText) {
+        return await classifyWithClaude(pageNumber, textContent);
+      } else if (hasThumbnail) {
+        // Text extraction failed but we have a thumbnail — use vision
+        console.log(
+          `[documentClassifier] Sparse text for page ${pageNumber}, using vision classification`
+        );
+        return await classifyWithVision(pageNumber, thumbnailPath, textContent || '');
+      }
     } catch (error) {
       // Fallback to pattern matching on API failure
       console.log(
         `[documentClassifier] Claude API failed for page ${pageNumber}, using pattern matching`
       );
     }
+  }
+
+  // If no text and no thumbnail, mark as irrelevant
+  if (!hasText && !hasThumbnail) {
+    return {
+      docType: 'Irrelevant',
+      entityGuess: null,
+      taxYearGuess: null,
+      confidence: 0.5,
+      relevance: 'uncertain',
+    };
   }
 
   // Fallback: pattern-based classification
@@ -85,7 +101,7 @@ export async function classifyPage(
 // ─── Batch classify ─────────────────────────────────────────
 
 export async function classifyPages(
-  pages: Array<{ pageNumber: number; textContent: string }>
+  pages: Array<{ pageNumber: number; textContent: string; thumbnailPath?: string }>
 ): Promise<Map<number, PageClassification>> {
   const results = new Map<number, PageClassification>();
 
@@ -94,7 +110,8 @@ export async function classifyPages(
   for (const page of pages) {
     const classification = await classifyPage(
       page.pageNumber,
-      page.textContent
+      page.textContent,
+      page.thumbnailPath
     );
     results.set(page.pageNumber, classification);
   }
@@ -145,6 +162,75 @@ async function classifyWithClaude(
     relevance: ['relevant', 'irrelevant', 'uncertain'].includes(
       parsed.relevance
     )
+      ? parsed.relevance
+      : 'uncertain',
+  };
+}
+
+// ─── Vision-based classification (for scanned / image-heavy PDFs) ──
+
+async function classifyWithVision(
+  pageNumber: number,
+  thumbnailPath: string,
+  textContent: string
+): Promise<PageClassification> {
+  const client = new Anthropic({ apiKey: config.anthropicApiKey });
+
+  const imageData = fs.readFileSync(thumbnailPath);
+  const base64Image = imageData.toString('base64');
+
+  const userContent: Anthropic.Messages.ContentBlockParam[] = [
+    {
+      type: 'image',
+      source: {
+        type: 'base64',
+        media_type: 'image/jpeg',
+        data: base64Image,
+      },
+    },
+    {
+      type: 'text',
+      text: `Classify this scanned document page (page ${pageNumber}).
+
+${textContent.trim().length > 0 ? `Extracted text (may be incomplete):\n---\n${textContent.substring(0, 1500)}\n---\n` : 'No text could be extracted from this page — rely on the image.\n'}
+Look carefully at the document image. Identify logos, headers, form numbers, account numbers, financial figures, and any visual cues that indicate what type of document this is.
+
+Respond with JSON:
+{
+  "docType": "one of the allowed types",
+  "entityGuess": "name or null",
+  "taxYearGuess": "YYYY or null",
+  "confidence": 0.0-1.0,
+  "relevance": "relevant|irrelevant|uncertain"
+}`,
+    },
+  ];
+
+  const response = await client.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 256,
+    system: CLASSIFICATION_SYSTEM_PROMPT,
+    messages: [{ role: 'user', content: userContent }],
+  });
+
+  const textBlock = response.content.find((b) => b.type === 'text');
+  if (!textBlock || textBlock.type !== 'text') {
+    throw new Error('No text in Claude vision response');
+  }
+
+  const rawText = textBlock.text.trim();
+  const jsonStr = rawText.startsWith('{')
+    ? rawText
+    : rawText.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
+
+  const parsed = JSON.parse(jsonStr);
+
+  return {
+    docType: parsed.docType || 'Other',
+    entityGuess: parsed.entityGuess || null,
+    taxYearGuess: parsed.taxYearGuess || null,
+    confidence: Math.min(1, Math.max(0, Number(parsed.confidence) || 0.5)),
+    relevance: ['relevant', 'irrelevant', 'uncertain'].includes(parsed.relevance)
       ? parsed.relevance
       : 'uncertain',
   };
@@ -229,7 +315,20 @@ const PATTERN_MAP: Array<{
     docType: 'Property Tax',
   },
   {
-    patterns: [/mortgage.*statement/i, /form 1098\b/i, /interest.*paid/i],
+    patterns: [
+      /mortgage/i,
+      /form 1098\b/i,
+      /\b1098\b/i,
+      /interest.*paid/i,
+      /loan.*payoff/i,
+      /escrow/i,
+      /principal.*balance/i,
+      /monthly.*payment/i,
+      /unpaid.*principal/i,
+      /lender/i,
+      /servicer/i,
+      /home.*equity/i,
+    ],
     docType: 'Mortgage Statement',
   },
   {

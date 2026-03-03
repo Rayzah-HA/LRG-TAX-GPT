@@ -214,7 +214,8 @@ router.post(
     for (const page of targetPages) {
       const result = await classifyPage(
         page.pageNumber,
-        page.textContent || ''
+        page.textContent || '',
+        page.thumbnailPath
       );
 
       page.classification = result;
