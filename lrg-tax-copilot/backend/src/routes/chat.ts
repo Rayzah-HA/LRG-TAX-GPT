@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import multer from 'multer';
 import { v4 as uuidv4 } from 'uuid';
 import config from '../config';
 import { requireAuth } from '../middleware/auth';
@@ -10,11 +11,51 @@ import { detectPII } from '../services/piiDetector';
 import { suggestTaxDomeStep } from '../services/taxdomeSteps';
 import { extractClientInfo, getClientContext, ClientContext } from '../services/clientIntelligence';
 import { ChatRequest, ChatResponse } from '../types';
+import { extractDocumentText } from '../services/documentTextExtractor';
 
 const router = Router();
 
-router.post('/', requireAuth, async (req: Request, res: Response) => {
-  const { sessionId, userMessage, conversationHistory } = req.body as ChatRequest;
+// Multer for optional file attachment in chat
+const chatUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = [
+      'application/pdf',
+      'image/png',
+      'image/jpeg',
+      'image/webp',
+    ];
+    if (allowed.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Unsupported file type. Use PDF, PNG, JPEG, or WebP.'));
+    }
+  },
+});
+
+router.post('/', requireAuth, chatUpload.single('file'), async (req: Request, res: Response) => {
+  // Support both JSON body and multipart form data
+  let sessionId: string | undefined;
+  let userMessage: string | undefined;
+  let conversationHistory: ChatRequest['conversationHistory'] | undefined;
+
+  if (req.is('multipart/form-data')) {
+    sessionId = req.body.sessionId;
+    userMessage = req.body.userMessage;
+    try {
+      conversationHistory = req.body.conversationHistory
+        ? JSON.parse(req.body.conversationHistory)
+        : [];
+    } catch {
+      conversationHistory = [];
+    }
+  } else {
+    const body = req.body as ChatRequest;
+    sessionId = body.sessionId;
+    userMessage = body.userMessage;
+    conversationHistory = body.conversationHistory;
+  }
 
   if (!userMessage || typeof userMessage !== 'string') {
     res.status(400).json({
@@ -28,7 +69,23 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
   const history = Array.isArray(conversationHistory) ? conversationHistory : [];
 
   try {
-    // Step 0: PII detection (warn, don't block)
+    // Step 0a: Extract text from attached document (if any)
+    let documentContext: string | undefined;
+    if (req.file) {
+      try {
+        documentContext = await extractDocumentText(
+          req.file.buffer,
+          req.file.mimetype
+        );
+        console.log(
+          `[chat] Document attached: type=${req.file.mimetype} extractedLength=${documentContext?.length || 0}`
+        );
+      } catch (err) {
+        console.log(`[chat] Document text extraction failed: ${err}`);
+      }
+    }
+
+    // Step 0b: PII detection (warn, don't block)
     const piiResults = detectPII(userMessage);
 
     // Step 1: Detect mode
@@ -94,6 +151,7 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
       retrievedContent: retrieval.retrievedContent,
       guardrailFlags: retrieval.guardrailFlagsAggregate,
       clientContext: clientContext || undefined,
+      documentContext,
     });
 
     // Step 6: Auto-save client context from the conversation

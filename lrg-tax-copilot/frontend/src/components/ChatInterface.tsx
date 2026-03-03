@@ -59,11 +59,11 @@ export default function ChatInterface() {
     router.push('/login');
   }, [router]);
 
-  async function sendMessage(userMessage: string) {
+  async function sendMessage(userMessage: string, file?: File) {
     const userMsg: Message = {
       id: uuidv4(),
       role: 'user',
-      content: userMessage,
+      content: file ? `${userMessage}\n\n📎 ${file.name}` : userMessage,
     };
 
     setMessages((prev) => [...prev, userMsg]);
@@ -77,7 +77,7 @@ export default function ChatInterface() {
     }));
 
     try {
-      const result = await chatApi.send(sessionId, userMessage, conversationHistory);
+      const result = await chatApi.send(sessionId, userMessage, conversationHistory, file);
 
       if (result.sessionId) {
         setSessionId(result.sessionId);

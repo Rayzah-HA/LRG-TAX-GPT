@@ -143,11 +143,47 @@ interface ChatResponse {
 }
 
 export const chatApi = {
-  send(
+  async send(
     sessionId: string,
     userMessage: string,
-    conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }>
-  ) {
+    conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }>,
+    file?: File
+  ): Promise<ChatResponse> {
+    // If a file is attached, use multipart form data
+    if (file) {
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const formData = new FormData();
+      formData.append('sessionId', sessionId);
+      formData.append('userMessage', userMessage);
+      formData.append('conversationHistory', JSON.stringify(conversationHistory));
+      formData.append('file', file);
+
+      const headers = getAuthHeaders();
+
+      const response = await fetch(`${API_BASE}/chat`, {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+
+      if (response.status === 401) {
+        logout();
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
+        }
+        throw new Error('Session expired. Please log in again.');
+      }
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || `Request failed with status ${response.status}`);
+      }
+
+      return data as ChatResponse;
+    }
+
+    // Standard JSON request (no file)
     return apiRequest<ChatResponse>('/chat', {
       method: 'POST',
       body: JSON.stringify({ sessionId, userMessage, conversationHistory }),

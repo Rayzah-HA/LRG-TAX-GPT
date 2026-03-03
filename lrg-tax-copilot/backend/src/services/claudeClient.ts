@@ -21,6 +21,7 @@ export interface ClaudeCallParams {
   retrievedContent: RetrievedEntry[];
   guardrailFlags: string[];
   clientContext?: ClientContext;
+  documentContext?: string;
 }
 
 // ─── Guardrail flag → enforcement instruction mapping ───────────
@@ -80,10 +81,22 @@ const MODE_CONTEXT: Record<InteractionMode, string> = {
     'conservative vs. aggressive spectrum. Always present the conservative position first.',
 
   'MODE-CRD':
-    'INTERACTION MODE: Client Response Drafting (MODE-CRD)\n' +
-    'The user needs help drafting a communication to a client. Produce professional, clear, ' +
-    'and compliant language. Use any retrieved templates as a starting point. Include all ' +
-    'preparer-provided figures (refund amounts, credits, deductions) exactly as given.',
+    'INTERACTION MODE: Client Response Drafting / Tax Writer (MODE-CRD)\n' +
+    'The user needs help writing a communication. This is the TAX WRITER mode.\n\n' +
+    'CRITICAL FORMATTING RULES:\n' +
+    '- When asked to write an EMAIL: Output a ready-to-send email with Subject line, greeting (Dear/Hi [Name]), ' +
+    'body paragraphs, professional closing, and signature block for LRG Tax Services.\n' +
+    '- When asked to write a LETTER: Output a formal letter with date, addressee, body, and signature block.\n' +
+    '- When asked to write a MEMO: Output with To/From/Date/Re header.\n' +
+    '- When asked to RESPOND to an email/message: Write the reply as a complete email ready to send.\n' +
+    '- When asked to WRITE A MESSAGE to a client: Output as a complete message ready to copy-paste.\n\n' +
+    'TONE: Match the tone the preparer requests. Default to professional but warm — LRG Tax Services ' +
+    'values personal relationships with clients. Avoid being cold or overly formal unless asked.\n\n' +
+    'CONTENT: Include all preparer-provided figures (refund amounts, credits, deductions) exactly as given. ' +
+    'Use any retrieved templates as a starting point. Do NOT add disclaimers about preparer-provided numbers.\n\n' +
+    'OUTPUT: Provide the communication FIRST (ready to copy-paste), then optionally add a brief note about ' +
+    'what you included or any suggestions. The communication itself should be clearly delineated.\n\n' +
+    'SIGNATURE: Use "LRG Tax Services" as the firm name in signatures unless the user specifies otherwise.',
 
   'MODE-PLS':
     'INTERACTION MODE: Pricing Logic Support (MODE-PLS)\n' +
@@ -243,15 +256,21 @@ export async function callClaude(params: ClaudeCallParams): Promise<string> {
     retrievedContent,
     guardrailFlags,
     clientContext,
+    documentContext,
   } = params;
 
   const systemPrompt = buildSystemPrompt(
     mode, guardrailFlags, retrievedContent, userMessage, clientContext
   );
 
+  // Build the final user message — prepend document context if attached
+  const finalUserMessage = documentContext
+    ? `The user has attached a document. Here is the extracted text from the document:\n\n═══════════════════════════════════════\n  ATTACHED DOCUMENT\n═══════════════════════════════════════\n\n${documentContext}\n\n═══════════════════════════════════════\n  END OF ATTACHED DOCUMENT\n═══════════════════════════════════════\n\nUser's message: ${userMessage}`
+    : userMessage;
+
   const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [
     ...conversationHistory,
-    { role: 'user', content: userMessage },
+    { role: 'user', content: finalUserMessage },
   ];
 
   const client = new Anthropic({ apiKey: config.anthropicApiKey });
