@@ -1,0 +1,53 @@
+# Home Assistant Configuration
+# https://www.home-assistant.io/docs/configuration/
+
+homeassistant:
+  name: Graham Home
+  unit_system: imperial
+  currency: USD
+  country: US
+  time_zone: America/New_York
+  # latitude: !secret home_latitude
+  # longitude: !secret home_longitude
+  # elevation: !secret home_elevation
+
+# Core integrations
+default_config:
+
+# Text-to-speech
+tts:
+  - platform: google_translate
+
+# Logging
+logger:
+  default: warning
+  logs:
+    homeassistant.components.automation: info
+
+# History and recorder
+recorder:
+  purge_keep_days: 14
+  commit_interval: 5
+
+# HTTP configuration (adjust for reverse proxy)
+http:
+  # server_port: 8123
+  # use_x_forwarded_for: true
+  # trusted_proxies:
+  #   - 172.16.0.0/12
+  #   - 192.168.0.0/16
+
+# Automations, scripts, and scenes from files
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+# Custom sensors and templates
+# template:
+#   - sensor:
+#       - name: "Example Sensor"
+#         state: "{{ states('sensor.some_sensor') }}"
+
+# Shell commands (useful for Docker management)
+# shell_command:
+#   restart_ha: "docker restart homeassistant"

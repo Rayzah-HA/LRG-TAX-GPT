@@ -25,7 +25,7 @@ A senior cybersecurity professional by day, running multiple ventures that blend
 - Travel, photography, and cinematic storytelling
 - Building brands, workflows, and scalable side businesses
 - World-building, character creation, and narrative design
-- Smart homes, home labs, and tech that actually works
+- Smart homes (Home Assistant on Docker), home labs, and tech that actually works
 
 ---
 
@@ -197,6 +197,17 @@ newsletter/
 braindumps/
   YYYY-MM-DD.md             # Raw brain dump files
   analysis/                 # Generated analyses
+home-assistant/
+  config/                   # HA configuration templates
+    configuration.yaml      # Main config
+    automations.yaml        # Automation definitions
+    scripts.yaml            # Script definitions
+    scenes.yaml             # Scene definitions
+    secrets.yaml.example    # Secrets template (actual secrets git-ignored)
+  automations/              # Automation planning docs
+  dashboards/               # Dashboard planning docs
+  docs/                     # Setup guides and device inventory
+  backups/                  # HA backups (git-ignored)
 ABOUT.md                    # Personal bio and links
 CLAUDE.md                   # This file - project context
 ```

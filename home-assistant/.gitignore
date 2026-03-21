@@ -1,0 +1,24 @@
+# Home Assistant - files to exclude from version control
+
+# Secrets (NEVER commit)
+config/secrets.yaml
+
+# Database and logs
+config/*.db
+config/*.log
+config/home-assistant_v2.db*
+
+# Backup files (too large for git)
+backups/*.tar
+backups/*.tar.gz
+
+# Runtime files
+config/.storage/
+config/tts/
+config/deps/
+config/__pycache__/
+config/.cloud/
+
+# OS files
+.DS_Store
+Thumbs.db

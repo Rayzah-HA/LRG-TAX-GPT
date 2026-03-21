@@ -1,0 +1,12 @@
+# Home Assistant Scenes
+# https://www.home-assistant.io/integrations/scene/
+
+# --- Example: Relax Scene ---
+# - name: Relax
+#   entities:
+#     light.living_room:
+#       state: "on"
+#       brightness: 100
+#       color_temp: 400
+#     light.bedroom:
+#       state: "off"
