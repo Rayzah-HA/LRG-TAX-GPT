@@ -70,29 +70,28 @@ Or use a USB drive / network share.
 
 ### Step 4: Mount ext4 Drives via WSL2
 
+This is a **one-time setup per drive**. `wsl --mount` attaches the physical disk directly into WSL2 — no reformatting needed.
+
 **In PowerShell (Admin):**
 
 ```powershell
-# Ensure WSL2 is running
-wsl --list --verbose
+# First, find the disk numbers after plugging them in:
+GET-CimInstance -query "SELECT * from Win32_DiskDrive" | Select-Object DeviceID, Model, Size
 
-# Find physical disk numbers for the ext4 drives
-Get-Disk | Select-Object Number, FriendlyName, Size
-
-# Mount each ext4 drive (replace X with actual disk numbers)
-wsl --mount \\.\PhysicalDriveX --partition 1   # Cinema (7.3T)
-wsl --mount \\.\PhysicalDriveX --partition 1   # Shows (12.7T)
-wsl --mount \\.\PhysicalDriveX --partition 2   # More TV (1.8T, has 16MB partition first)
+# Then mount each ext4 disk into WSL2 (replace 1,2,3 with actual disk numbers):
+wsl --mount \\.\PhysicalDrive1 --partition 1   # Cinema (7.3T)
+wsl --mount \\.\PhysicalDrive2 --partition 1   # Shows (12.7T)
+wsl --mount \\.\PhysicalDrive3 --partition 2   # More TV (1.8T, has 16MB first partition)
 ```
 
-**Then in WSL2 terminal:**
+Drives will auto-mount to `/mnt/wsl/PhysicalDriveX` inside WSL2. Verify:
 
 ```bash
-sudo mkdir -p /mnt/media/cinema /media/rayzah/Shows1 /mnt/more_tv
-sudo mount /dev/sdX1 /mnt/media/cinema     # Cinema drive
-sudo mount /dev/sdX1 /media/rayzah/Shows1  # Shows drive
-sudo mount /dev/sdX2 /mnt/more_tv          # More TV drive
+wsl -e lsblk
+wsl -e df -h
 ```
+
+**Note:** These mounts do NOT survive a reboot. Once you confirm the disk numbers on the new PC, update `scripts/wsl-mount-ext4.ps1` and set it as a Windows Startup Task to automate this.
 
 ### Step 5: Extract Plex Config
 
@@ -126,7 +125,8 @@ docker logs -f plex
 
 ## Post-Migration
 
-- [ ] Automate ext4 WSL2 mounts at startup (see `scripts/wsl-mount-ext4.ps1`)
+- [ ] Confirm PhysicalDrive numbers on new PC, update `scripts/wsl-mount-ext4.ps1`
+- [ ] Set up WSL2 mount script as Windows Scheduled Task (runs at startup)
 - [ ] Re-enable hardware transcoding (Intel QuickSync / NVIDIA)
 - [ ] Update any remote access / reverse proxy settings
 - [ ] Verify Plex Pass is active
