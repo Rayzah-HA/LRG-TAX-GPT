@@ -208,6 +208,14 @@ home-assistant/
   dashboards/               # Dashboard planning docs
   docs/                     # Setup guides and device inventory
   backups/                  # HA backups (git-ignored)
+plex/
+  docker-compose.yml        # Plex Docker Compose config
+  config/                   # Plex config (git-ignored, restored from backup)
+  scripts/
+    plex-backup.sh          # Backup script for Ubuntu server
+    wsl-mount-ext4.ps1      # PowerShell script to mount ext4 drives in WSL2
+  docs/
+    migration-guide.md      # Full Ubuntu → Windows Docker migration plan
 ABOUT.md                    # Personal bio and links
 CLAUDE.md                   # This file - project context
 ```

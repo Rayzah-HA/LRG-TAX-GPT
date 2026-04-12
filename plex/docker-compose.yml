@@ -1,0 +1,45 @@
+services:
+  plex:
+    image: lscr.io/linuxserver/plex:latest
+    container_name: plex
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+      - VERSION=docker
+      # Uncomment and set on first run only (expires in 4 min):
+      # - PLEX_CLAIM=claim-xxxxxxxxxxxxxxxxxxxx
+    volumes:
+      - C:\plex\config:/config
+
+      # --- NTFS drives (update drive letters after plugging in) ---
+      - D:\:/home/rayzah/Videos/Movie         # "Movies" drive (7.3T)
+      - E:\:/home/rayzah/Shows                # "TV" drive (7.3T)
+      - F:\:/home/rayzah/Videos/Reality       # "TV2" drive (1.8T)
+      - G:\:/home/rayzah/Media                # "Cache" drive (3.6T)
+
+      # --- ext4 drives (accessed via WSL2 mounts) ---
+      - /mnt/media:/mnt/media                 # Cinema (7.3T ext4)
+      - /media/rayzah/Shows1:/media/rayzah/Shows1  # Shows (12.7T ext4)
+      - /mnt/more_tv:/mnt/more_tv             # More TV (1.8T ext4)
+
+    ports:
+      - 32400:32400/tcp
+      - 1900:1900/udp
+      - 32410:32410/udp
+      - 32412:32412/udp
+      - 32413:32413/udp
+      - 32414:32414/udp
+      - 32469:32469/tcp
+    restart: unless-stopped
+
+    # Uncomment for Intel QuickSync hardware transcoding:
+    # devices:
+    #   - /dev/dri:/dev/dri
+
+    # Uncomment for NVIDIA GPU transcoding:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - capabilities: [gpu]
