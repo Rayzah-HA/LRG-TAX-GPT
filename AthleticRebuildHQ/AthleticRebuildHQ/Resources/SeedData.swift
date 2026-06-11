@@ -14,10 +14,34 @@ enum SeedData {
         for exercise in exercises {
             context.insert(exercise)
         }
-        for template in seedTemplates() {
+        let templates = seedTemplates()
+        for template in templates {
             context.insert(template)
         }
+        seedSchedule(context, templates: templates)
         try? context.save()
+    }
+
+    // MARK: - Default weekly schedule
+    //
+    // A starter rebuild split mapping the four templates onto weekdays. The
+    // user can fully edit this in the Weekly Schedule screen. Weekday numbers
+    // follow Calendar: 1 = Sunday … 7 = Saturday.
+    private static func seedSchedule(_ context: ModelContext, templates: [WorkoutTemplate]) {
+        let byName = Dictionary(uniqueKeysWithValues: templates.map { ($0.name, $0) })
+        let plan: [(weekday: Int, template: String)] = [
+            (2, "Upper Machine Day"),            // Monday
+            (3, "Lower Machine Day"),            // Tuesday
+            (5, "Upper Dumbbell + Machine Day"), // Thursday
+            (6, "Lower Athletic Day")            // Friday
+        ]
+        for entry in plan {
+            guard let template = byName[entry.template] else { continue }
+            for (index, item) in template.sortedItems.enumerated() {
+                context.insert(WeeklyPlanItem(weekday: entry.weekday, name: item.name,
+                                              groupTitle: template.name, detail: item.detail, order: index))
+            }
+        }
     }
 
     // MARK: - Exercises

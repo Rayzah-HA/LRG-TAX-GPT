@@ -59,6 +59,22 @@ struct WorkoutEditView: View {
         }
     }
 
+    /// Log-details initializer used by the Today screen: a new session on a
+    /// given date with the exercises already checked off pre-selected.
+    init(date: Date, completedExerciseNames: [String]) {
+        self.existing = nil
+        _date = State(initialValue: date)
+        _type = State(initialValue: .athleticFullBody)
+        _durationMinutes = State(initialValue: 45)
+        _energyLevel = State(initialValue: 7)
+        _notes = State(initialValue: "")
+        _completed = State(initialValue: Set(completedExerciseNames))
+        _cardioCompleted = State(initialValue: false)
+        _stretchingCompleted = State(initialValue: false)
+        _templateName = State(initialValue: "")
+        suggestedExercises = completedExerciseNames
+    }
+
     var body: some View {
         NavigationStack {
             Form {

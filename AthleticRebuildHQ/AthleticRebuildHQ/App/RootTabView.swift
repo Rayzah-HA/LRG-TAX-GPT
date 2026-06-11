@@ -12,9 +12,9 @@ struct RootTabView: View {
             .tabItem { Label("Home", systemImage: "house.fill") }
 
             NavigationStack {
-                WorkoutLogView()
+                TodayView()
             }
-            .tabItem { Label("Workouts", systemImage: "figure.run") }
+            .tabItem { Label("Today", systemImage: "checklist") }
 
             NavigationStack {
                 ExerciseLibraryView()

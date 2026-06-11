@@ -12,6 +12,8 @@ enum PreviewData {
             Workout.self,
             WorkoutTemplate.self,
             TemplateItem.self,
+            WeeklyPlanItem.self,
+            DayExercise.self,
             BodyProgress.self,
             SuitFit.self,
             NutritionEntry.self,
@@ -23,6 +25,19 @@ enum PreviewData {
         // Library + templates.
         for exercise in SeedData.seedExercises() { context.insert(exercise) }
         for template in SeedData.seedTemplates() { context.insert(template) }
+
+        // Weekly schedule for today's weekday + a partly-completed "today".
+        let weekday = DateHelper.weekday(.now)
+        let todayStart = DateHelper.startOfDay(.now)
+        let sample = ["Lat Pulldown", "Chest Press", "Seated Row", "Tricep Extension", "Bicep Curl"]
+        for (index, name) in sample.enumerated() {
+            context.insert(WeeklyPlanItem(weekday: weekday, name: name,
+                                          groupTitle: "Upper Machine Day", detail: "3 × 12", order: index))
+            context.insert(DayExercise(date: todayStart, name: name,
+                                       groupTitle: "Upper Machine Day", detail: "3 × 12", order: index,
+                                       isCompleted: index < 2,
+                                       completedAt: index < 2 ? .now : nil))
+        }
 
         // A few recent workouts.
         let calendar = Calendar.current

@@ -9,7 +9,8 @@ struct DashboardView: View {
     @Query(sort: \BodyProgress.date, order: .reverse) private var progress: [BodyProgress]
     @Query(sort: \RecoveryEntry.date, order: .reverse) private var recovery: [RecoveryEntry]
     @Query(sort: \SuitFit.lastWorn, order: .forward) private var suits: [SuitFit]
-    @Query private var templates: [WorkoutTemplate]
+    @Query private var dayExercises: [DayExercise]
+    @Query private var planItems: [WeeklyPlanItem]
 
     private let columns = [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)]
 
@@ -70,41 +71,43 @@ struct DashboardView: View {
 
     private var todaysWorkoutCard: some View {
         NavigationLink {
-            WorkoutLogView()
+            TodayView()
         } label: {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    Label("Today", systemImage: "calendar")
+                    Label("Today's Workout", systemImage: "checklist")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Theme.secondaryText)
                     Spacer()
                     Image(systemName: "chevron.right")
                         .foregroundStyle(Theme.secondaryText)
                 }
-                if let todays = todaysWorkout {
+
+                if todayTotal > 0 {
                     HStack(spacing: 12) {
-                        Image(systemName: todays.type.symbol)
+                        Image(systemName: todayAllDone ? "checkmark.seal.fill" : "figure.strengthtraining.traditional")
                             .font(.title)
-                            .foregroundStyle(todays.type.tint)
+                            .foregroundStyle(todayAllDone ? .green : Theme.accentBright)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(todays.type.label)
+                            Text(todayAllDone ? "Workout complete" : "\(todayDone) of \(todayTotal) done")
                                 .font(.title3.weight(.bold))
                                 .foregroundStyle(Theme.primaryText)
-                            Text("\(todays.durationMinutes) min · Energy \(todays.energyLevel)/10")
+                            Text(todayAllDone ? "Great work today." : "Tap to check off your exercises")
                                 .font(.subheadline)
                                 .foregroundStyle(Theme.secondaryText)
                         }
                     }
+                    ProgressBar(progress: todayProgress, tint: todayAllDone ? .green : Theme.accentBright)
                 } else {
                     HStack(spacing: 12) {
                         Image(systemName: "dumbbell.fill")
                             .font(.title)
                             .foregroundStyle(Theme.accentBright)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("No workout logged yet")
+                            Text("Rest day")
                                 .font(.title3.weight(.bold))
                                 .foregroundStyle(Theme.primaryText)
-                            Text(suggestionText)
+                            Text("Nothing scheduled — tap to plan or add a workout")
                                 .font(.subheadline)
                                 .foregroundStyle(Theme.secondaryText)
                         }
@@ -229,8 +232,19 @@ struct DashboardView: View {
         }
     }
 
-    private var todaysWorkout: Workout? {
-        workouts.first { Calendar.current.isDateInToday($0.date) }
+    // Today's checklist progress (driven by the Today screen's day rows).
+    private var todayItems: [DayExercise] {
+        dayExercises.filter { DateHelper.isSameDay($0.date, .now) }
+    }
+    /// Total includes scheduled exercises even before the day is materialized.
+    private var todayTotal: Int {
+        max(todayItems.count, planItems.filter { $0.weekday == DateHelper.weekday(.now) }.count)
+    }
+    private var todayDone: Int { todayItems.filter(\.isCompleted).count }
+    private var todayAllDone: Bool { todayTotal > 0 && todayDone == todayTotal }
+    private var todayProgress: Double {
+        guard todayTotal > 0 else { return 0 }
+        return Double(todayDone) / Double(todayTotal)
     }
 
     private var thisWeekWorkouts: [Workout] {
@@ -281,13 +295,6 @@ struct DashboardView: View {
         guard let suit = suits.first else { return "Add a suit to track your fit" }
         let days = Calendar.current.dateComponents([.day], from: suit.lastWorn, to: .now).day ?? 0
         return "\(suit.name): \(suit.fitStatus.label) · worn \(days)d ago"
-    }
-
-    private var suggestionText: String {
-        if let template = templates.first {
-            return "Try: \(template.name)"
-        }
-        return "Tap to log your session"
     }
 }
 

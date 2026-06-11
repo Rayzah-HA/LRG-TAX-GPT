@@ -32,14 +32,23 @@ target membership needed.
 
 | Tab | What it does |
 | --- | --- |
-| **Home** | Dashboard: today's workout, weekly workout count, current weight + trend, cardio minutes this week, recovery score, last progress photo, suit-fit reminder, quick links |
-| **Workouts** | Log sessions (type, duration, energy 1–10, notes, exercise checklist, cardio/stretching). Start from a template. Access the 4 templates. |
-| **Library** | Gallery of exercises with photos, muscle-group filters, search. Each exercise has sets/reps, starting & current weight, form cue, notes, photo, optional demo video link. Quick ±5 weight buttons. |
+| **Home** | Dashboard: today's checklist progress, weekly workout count, current weight + trend, cardio minutes this week, recovery score, last progress photo, suit-fit reminder, quick links |
+| **Today** | Pick a day from the week strip → check off the exercises for that day. Days are pre-filled from your **weekly schedule** and editable per day (add/remove, reset to schedule). "Log how it went" records energy/reps/notes separately. |
+| **Library** | Gallery of exercises with photos, muscle-group filters, search, and a **Needs Photos** filter. Each exercise has sets/reps, starting & current weight, form cue, notes, photo, optional demo video link. Quick ±5 weight buttons. |
 | **Body** | Weight trend chart + measurement history (weight, waist, chest, arms, thighs), sleep/stress/energy scores, and front/side/back progress photos. Links to Suit Fit. |
 | **Recovery** | Daily recovery score (sleep, soreness, stress, motivation, hydration, mobility). Links to Nutrition. |
 
-Secondary screens — **Templates**, **Suit Fit**, **Nutrition** — are reachable
-from the dashboard quick links and the relevant tab toolbars.
+Secondary screens — **Weekly Schedule**, **Templates**, **Workout History**,
+**Suit Fit**, **Nutrition** — are reachable from the dashboard quick links and
+the relevant tab toolbars.
+
+### Day-based workflow
+
+The **Today** tab is the core loop: each day lists the individual exercises
+you're doing (checkbox per exercise), pre-filled from a recurring **weekly
+schedule** you set once. You can still add or remove exercises on any given
+day without changing the schedule. Detailed reporting (how you felt, reps,
+energy) lives separately in the workout log so checking off stays fast.
 
 ## Seeded content
 
@@ -56,7 +65,7 @@ AthleticRebuildHQ/
   Models/         SwiftData @Model types + enums
   Shared/         Theme, helpers, reusable components (cards, photo field, sliders)
   Features/
-    Dashboard/  ExerciseLibrary/  Templates/  Workouts/
+    Dashboard/  Today/  Schedule/  ExerciseLibrary/  Templates/  Workouts/
     BodyProgress/  SuitFit/  Nutrition/  Recovery/
   Resources/      Seed data + preview sample data
   Assets.xcassets

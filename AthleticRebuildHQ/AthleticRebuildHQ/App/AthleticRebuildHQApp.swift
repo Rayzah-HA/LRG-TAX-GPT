@@ -14,6 +14,8 @@ struct AthleticRebuildHQApp: App {
                 Workout.self,
                 WorkoutTemplate.self,
                 TemplateItem.self,
+                WeeklyPlanItem.self,
+                DayExercise.self,
                 BodyProgress.self,
                 SuitFit.self,
                 NutritionEntry.self,
