@@ -58,4 +58,8 @@ final class Exercise {
 
     /// Change in weight since starting, in the user's chosen unit.
     var weightDelta: Double { currentWeight - startingWeight }
+
+    /// True when no real photo has been attached yet. Drives the
+    /// "Needs Photos" workflow in the library.
+    var needsPhoto: Bool { photoData == nil }
 }

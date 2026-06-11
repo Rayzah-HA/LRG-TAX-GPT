@@ -60,25 +60,42 @@ struct ExerciseDetailView: View {
         }
     }
 
+    @ViewBuilder
     private var photo: some View {
-        Group {
-            if let data = exercise.photoData, let image = UIImage(data: data) {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(height: 240)
-                    .frame(maxWidth: .infinity)
-                    .clipShape(RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous))
-            } else {
-                RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous)
-                    .fill(Theme.cardElevated)
-                    .frame(height: 240)
-                    .overlay {
-                        Image(systemName: exercise.muscleGroup.symbol)
-                            .font(.system(size: 60))
-                            .foregroundStyle(Theme.accentBright.opacity(0.8))
+        if let data = exercise.photoData, let image = UIImage(data: data) {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFill()
+                .frame(height: 240)
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous))
+        } else {
+            // No real photo yet — prompt to capture one with the existing
+            // camera / photo library flow (PhotoField).
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 12) {
+                    Image(systemName: "camera.fill")
+                        .font(.title2)
+                        .foregroundStyle(.orange)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Add a photo of this machine or movement")
+                            .font(.headline)
+                            .foregroundStyle(Theme.primaryText)
+                        Text("Real photos from your gym make it faster to find.")
+                            .font(.subheadline)
+                            .foregroundStyle(Theme.secondaryText)
                     }
+                }
+                PhotoField(title: "Machine / Exercise Photo", data: $exercise.photoData, height: 200)
             }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.orange.opacity(0.10),
+                        in: RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous)
+                    .strokeBorder(Color.orange.opacity(0.35), lineWidth: 1)
+            )
         }
     }
 

@@ -8,6 +8,7 @@ struct ExerciseLibraryView: View {
 
     @State private var searchText = ""
     @State private var selectedGroup: MuscleGroup?
+    @State private var needsPhotoOnly = false
     @State private var showingAdd = false
 
     private let columns = [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)]
@@ -18,9 +19,15 @@ struct ExerciseLibraryView: View {
                 filterChips
 
                 if filteredExercises.isEmpty {
-                    EmptyStateView(systemImage: "square.grid.2x2",
-                                   title: "No exercises",
-                                   message: "Tap + to add an exercise and attach a photo of the machine.")
+                    if needsPhotoOnly {
+                        EmptyStateView(systemImage: "checkmark.seal.fill",
+                                       title: "All caught up",
+                                       message: "Every exercise in this view has a photo. Nice work.")
+                    } else {
+                        EmptyStateView(systemImage: "square.grid.2x2",
+                                       title: "No exercises",
+                                       message: "Tap + to add an exercise and attach a photo of the machine.")
+                    }
                 } else {
                     LazyVGrid(columns: columns, spacing: 14) {
                         ForEach(filteredExercises) { exercise in
@@ -56,6 +63,8 @@ struct ExerciseLibraryView: View {
     private var filterChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
+                // "Needs Photos" lives first so it's the easiest to reach with a thumb.
+                needsPhotoChip
                 chip(title: "All", isSelected: selectedGroup == nil) { selectedGroup = nil }
                 ForEach(MuscleGroup.allCases) { group in
                     chip(title: group.label, isSelected: selectedGroup == group) {
@@ -64,6 +73,30 @@ struct ExerciseLibraryView: View {
                 }
             }
             .padding(.horizontal, 2)
+        }
+    }
+
+    private var needsPhotoChip: some View {
+        Button {
+            needsPhotoOnly.toggle()
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "camera.badge.ellipsis")
+                Text("Needs Photos")
+                if needsPhotoCount > 0 {
+                    Text("\(needsPhotoCount)")
+                        .font(.caption2.weight(.bold))
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 2)
+                        .background(needsPhotoOnly ? Color.white.opacity(0.25) : Color.orange.opacity(0.25),
+                                    in: Capsule())
+                }
+            }
+            .font(.subheadline.weight(.semibold))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(needsPhotoOnly ? Color.orange : Theme.card, in: Capsule())
+            .foregroundStyle(needsPhotoOnly ? .black : .orange)
         }
     }
 
@@ -78,13 +111,19 @@ struct ExerciseLibraryView: View {
         }
     }
 
+    /// Count of exercises still missing a photo (ignores the active filter).
+    private var needsPhotoCount: Int {
+        exercises.filter(\.needsPhoto).count
+    }
+
     private var filteredExercises: [Exercise] {
         exercises.filter { exercise in
             let matchesGroup = selectedGroup == nil || exercise.muscleGroup == selectedGroup
             let matchesSearch = searchText.isEmpty
                 || exercise.name.localizedCaseInsensitiveContains(searchText)
                 || exercise.equipment.localizedCaseInsensitiveContains(searchText)
-            return matchesGroup && matchesSearch
+            let matchesNeedsPhoto = !needsPhotoOnly || exercise.needsPhoto
+            return matchesGroup && matchesSearch && matchesNeedsPhoto
         }
     }
 }
@@ -95,25 +134,40 @@ struct ExerciseCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ZStack {
+            ZStack(alignment: .topTrailing) {
                 if let data = exercise.photoData, let image = UIImage(data: data) {
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFill()
+                        .frame(height: 120)
+                        .frame(maxWidth: .infinity)
+                        .clipped()
                 } else {
                     Rectangle()
                         .fill(LinearGradient(colors: [Theme.cardElevated, Theme.card],
                                              startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .frame(height: 120)
+                        .frame(maxWidth: .infinity)
                         .overlay {
                             Image(systemName: exercise.muscleGroup.symbol)
                                 .font(.system(size: 40))
                                 .foregroundStyle(Theme.accentBright.opacity(0.8))
                         }
                 }
+
+                // Visible badge prompting a real photo for this machine/movement.
+                if exercise.needsPhoto {
+                    Label("Needs Photo", systemImage: "camera.fill")
+                        .font(.caption2.weight(.bold))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 5)
+                        .background(Color.orange, in: Capsule())
+                        .foregroundStyle(.black)
+                        .padding(8)
+                }
             }
             .frame(height: 120)
             .frame(maxWidth: .infinity)
-            .clipped()
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(exercise.name)
