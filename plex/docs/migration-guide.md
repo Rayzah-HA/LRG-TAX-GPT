@@ -1,162 +1,171 @@
-# Plex Server Migration: Ubuntu → Windows Docker (WSL2)
+# Plex Server Setup — Windows Native + Docker Arr Stack
 
 ## Overview
 
-Migrating Plex Media Server from a bare-metal Ubuntu install to Docker Desktop on Windows, using WSL2 to handle ext4 drives without reformatting.
+Plex Media Server runs **natively on Windows** (not in Docker) because ext4 drives are readable natively in Windows 11 via drive letters — no WSL mount hacks needed.
+
+The *arr stack (Sonarr, Radarr, SABnzbd, etc.) runs in **Docker Desktop** on the same machine.
 
 ---
 
-## Drive Inventory
+## Current Location: Germany
 
-| Drive | Size | Label | Format | Windows Readable | Plex Library |
-|-------|------|-------|--------|-----------------|-------------|
-| sda | 7.3T | Cinema | ext4 | No — WSL2 mount | Movies (cinema) |
-| sdb | 12.7T | Shows | ext4 | No — WSL2 mount | TV Shows |
-| sdc | 7.3T | Movies | NTFS | Yes | Movies |
-| sdd | 7.3T | TV | NTFS | Yes | TV Shows |
-| sde | 1.8T | TV2 | NTFS | Yes | Reality TV |
-| sdg | 1.8T | More TV | ext4 | No — WSL2 mount | More TV |
-| sdh | 3.6T | Cache | NTFS | Yes | Media cache |
-
-**Total storage:** ~41.8 TB  
-**OS drive:** nvme0n1 (465GB NVMe) — stays with Ubuntu machine, not migrated
-
-### Mount Strategy
-
-- **4 NTFS drives** (Movies, TV, TV2, Cache) → Windows reads natively, map via drive letters
-- **3 ext4 drives** (Cinema, Shows, More TV) → `wsl --mount` into WSL2, no reformat needed
+- **Local IP:** 192.168.1.9
+- **Timezone:** Europe/Berlin
 
 ---
 
-## Step-by-Step Migration
+## Drive Inventory (as of 2026-08-01)
 
-### Step 1: Back Up Plex Config on Ubuntu
+| Letter | Disk# | Label | Size | Format | Content | Free |
+|--------|-------|-------|------|--------|---------|------|
+| C: | 4 | Windos X | 215 GB | NTFS | Windows OS | 34 GB |
+| D: | 1 | Earth 2 | 466 GB | NTFS | Misc | 306 GB |
+| E: | 0 | TV2 | 1.9 TB | NTFS | Reality TV + Anime (moved from I:) | ~1.6 TB |
+| F: | 3 | Games Mechanical | 1.9 TB | NTFS | Games | 591 GB |
+| G: | 6 | Arsenal | 4.7 TB | NTFS | Games (Skyrim, BG3, etc.) | 798 GB |
+| I: | 8 | TV | 7.5 TB | NTFS | TV Shows + Anime | ~21 GB (was 116MB) |
+| J: | 7 | (ext4) | 1.8 TB | ext4 | Anime Films + Movies Two | 467 GB |
+| K: | 9 | (ext4) | 13 TB | ext4 | Shows (main TV library) | 1.4 TB |
+| L: | 10 | (ext4) | 7.3 TB | ext4 | Cinema (Movies) | 6.6 TB |
+| R: | 5 | Games M.2 | 932 GB | NTFS | Games SSD | 254 GB |
+| W: | 2 | Warehouse | 1.9 TB | NTFS | Docker configs, Plex config | 804 GB |
 
-Run the backup script (`scripts/plex-backup.sh`) on the existing server:
+**Total storage:** ~36 TB across 11 drives
+**ext4 drives (J:, K:, L:):** Windows 11 reads natively — no WSL mount needed
 
-```bash
-# Quick version:
-sudo tar -czf ~/plex-backup.tar.gz \
-  "/var/lib/plexmediaserver/Library/Application Support/Plex Media Server/Plug-in Support/Databases" \
-  "/var/lib/plexmediaserver/Library/Application Support/Plex Media Server/Plug-in Support/Preferences" \
-  "/var/lib/plexmediaserver/Library/Application Support/Plex Media Server/Preferences.xml" \
-  "/var/lib/plexmediaserver/Library/Application Support/Plex Media Server/Metadata"
+### Important: Disk 8 (I: drive) goes Offline on reboot
+Disk 8 may show as "Offline" after a reboot. Fix in Disk Management: right-click Disk 8 > Online. Then assign drive letter I: if needed.
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────┐
+│           Windows 11 (ANARCHY)          │
+│                                         │
+│  ┌─────────────────┐                    │
+│  │  Plex (native)  │ ← reads all       │
+│  │  Port 32400     │   drives directly  │
+│  └─────────────────┘                    │
+│                                         │
+│  ┌─────────────────────────────────┐    │
+│  │  Docker Desktop (WSL2 backend)  │    │
+│  │                                 │    │
+│  │  ┌─────────┐  ┌──────────┐     │    │
+│  │  │ Sonarr  │  │ SABnzbd  │     │    │
+│  │  │ :8989   │  │ :8080    │     │    │
+│  │  ├─────────┤  ├──────────┤     │    │
+│  │  │ Radarr  │  │ Tautulli │     │    │
+│  │  │ :7878   │  │ :8181    │     │    │
+│  │  ├─────────┤  ├──────────┤     │    │
+│  │  │Overseerr│  │Maintainerr│    │    │
+│  │  │ :5055   │  │ :6246    │     │    │
+│  │  ├─────────┤  ├──────────┤     │    │
+│  │  │  Tdarr  │  │ Kometa   │     │    │
+│  │  │:8265-66 │  │          │     │    │
+│  │  ├─────────┤  ├──────────┤     │    │
+│  │  │Posteria │  │  UMTK    │     │    │
+│  │  │ :1818   │  │  :2120   │     │    │
+│  │  ├─────────┤  ├──────────┤     │    │
+│  │  │         │  │  TSSK    │     │    │
+│  │  │         │  │          │     │    │
+│  │  └─────────┘  └──────────┘     │    │
+│  └─────────────────────────────────┘    │
+└─────────────────────────────────────────┘
 ```
 
-**What's preserved:** watch history, on-deck, users, playlists, collections, metadata, posters  
-**What needs reconfiguring:** hardware transcoding, library path remapping, reverse proxy
+---
 
-### Step 2: Transfer Backup to Windows PC
+## Plex (Native Windows Install)
 
-```bash
-# From Ubuntu, copy to Windows PC (adjust IP/path)
-scp ~/plex-backup.tar.gz user@windows-pc:/c/plex/
-```
+Plex runs natively because Docker had issues accessing ext4 drives via WSL mount paths. Native Plex reads all drive letters (including J:, K:, L: ext4 drives) directly.
 
-Or use a USB drive / network share.
+- **Web UI:** http://localhost:32400/web
+- **Config:** Default Windows Plex location
+- **Starts at boot:** Yes (system tray)
 
-### Step 3: Plug In All Drives to Windows PC
+### Plex Libraries → Drive Mapping
 
-1. Physically move all 7 drives to the new Windows machine
-2. Windows will auto-assign letters to the 4 NTFS drives
-3. Note which letter maps to which drive:
+| Library | Drive(s) |
+|---------|----------|
+| TV Shows | I:\T.V. Shows, K:\ |
+| Movies | L:\ |
+| Anime Series | I:\Anime (moving to E:\Anime) |
+| Anime Films | J:\Anime Films |
+| Reality TV | E:\ |
+| Wrestling | K:\ (subset) |
 
-| Drive Letter | Label | Confirm with |
-|-------------|-------|-------------|
-| `?:\` | Movies (7.3T NTFS) | Check in File Explorer |
-| `?:\` | TV (7.3T NTFS) | Check in File Explorer |
-| `?:\` | TV2 (1.8T NTFS) | Check in File Explorer |
-| `?:\` | Cache (3.6T NTFS) | Check in File Explorer |
+---
 
-### Step 4: Mount ext4 Drives via WSL2
+## Docker Arr Stack
 
-This is a **one-time setup per drive**. `wsl --mount` attaches the physical disk directly into WSL2 — no reformatting needed.
+### Config Locations
+- **Compose file:** W:\docker\docker-compose.yml
+- **App data:** W:\docker\appdata\{sonarr,radarr,sabnzbd,...}
+- **Downloads:** W:\docker\downloads
 
-**In PowerShell (Admin):**
+### Sonarr Root Folders (container paths)
+- `/tv2` → mapped to some drive
+- `/i_drive/T.V. Shows` → I:\T.V. Shows
+- `/i_drive/Anime` → I:\Anime
 
+### Key Ports
+| Service | Port | URL |
+|---------|------|-----|
+| Plex | 32400 | http://localhost:32400/web |
+| Sonarr | 8989 | http://localhost:8989 |
+| Radarr | 7878 | http://localhost:7878 |
+| SABnzbd | 8080 | http://localhost:8080 |
+| Overseerr | 5055 | http://localhost:5055 |
+| Tautulli | 8181 | http://localhost:8181 |
+| Maintainerr | 6246 | http://localhost:6246 |
+| Tdarr | 8265 | http://localhost:8265 |
+| Posteria | 1818 | http://localhost:1818 |
+| UMTK | 2120 | http://localhost:2120 |
+
+### Manual Run Commands
 ```powershell
-# First, find the disk numbers after plugging them in:
-GET-CimInstance -query "SELECT * from Win32_DiskDrive" | Select-Object DeviceID, Model, Size
+# UMTK (also runs TSSK after)
+docker exec umtk python /app/UMTK.py
 
-# Then mount each ext4 disk into WSL2 (replace 1,2,3 with actual disk numbers):
-wsl --mount \\.\PhysicalDrive1 --partition 1   # Cinema (7.3T)
-wsl --mount \\.\PhysicalDrive2 --partition 1   # Shows (12.7T)
-wsl --mount \\.\PhysicalDrive3 --partition 2   # More TV (1.8T, has 16MB first partition)
+# TSSK standalone
+docker exec tssk python /app/TSSK.py
+
+# Kometa
+docker exec kometa python kometa.py --run
+
+# Restart all arr services
+docker restart sabnzbd sonarr radarr tautulli overseerr maintainerr tdarr posteria kometa umtk tssk
 ```
-
-Drives will auto-mount to `/mnt/wsl/PhysicalDriveX` inside WSL2. Verify:
-
-```bash
-wsl -e lsblk
-wsl -e df -h
-```
-
-**Note:** These mounts do NOT survive a reboot. Once you confirm the disk numbers on the new PC, update `scripts/wsl-mount-ext4.ps1` and set it as a Windows Startup Task to automate this.
-
-### Step 5: Extract Plex Config
-
-```bash
-mkdir -p C:\plex\config
-cd C:\plex
-tar -xzf plex-backup.tar.gz -C config/
-```
-
-### Step 6: Create Docker Compose
-
-Use the `docker-compose.yml` in this directory. Fill in actual drive letters before running.
-
-### Step 7: Launch
-
-```bash
-cd C:\plex
-docker compose up -d
-docker logs -f plex
-```
-
-### Step 8: Verify
-
-1. Open `http://localhost:32400/web`
-2. Check all libraries are visible
-3. Confirm watch history carried over
-4. Re-enable hardware transcoding if applicable
-5. Test playback from each drive
 
 ---
 
-## Post-Migration
+## Radarr Recovery
 
-- [ ] Confirm PhysicalDrive numbers on new PC, update `scripts/wsl-mount-ext4.ps1`
-- [ ] Set up WSL2 mount script as Windows Scheduled Task (runs at startup)
-- [ ] Re-enable hardware transcoding (Intel QuickSync / NVIDIA)
-- [ ] Update any remote access / reverse proxy settings
-- [ ] Verify Plex Pass is active
-- [ ] Test remote streaming
-- [ ] Decommission old Ubuntu Plex server
+Radarr's database corrupted (migration failure). Restored from April 10, 2026 backup:
+- Backup: `radarr_backup_v6.0.4.10291_2026.04.10_11.07.45.zip`
+- Broken DB saved as: `radarr.db.broken` and `radarr.db.corrupt`
 
 ---
 
-## What Ports Over vs. What Doesn't
+## Known Issues
 
-| Ports Over | Doesn't Port |
-|---|---|
-| Watch history & on-deck | Hardware transcoding settings |
-| Library metadata & posters | Library paths (need remapping) |
-| Users & sharing | OS-level scheduled tasks |
-| Playlists & collections | Reverse proxy / DNS config |
-| Server preferences | Plex Pass (re-login required) |
+### I: drive fills up → Sonarr imports fail
+When I: hits 0 bytes free, Sonarr downloads complete but sit in `/downloads/complete/` with status `importPending` / `Failed to import episode`. Fix: free space on I:, then Sonarr auto-retries.
+
+### Disk 8 goes Offline after reboot
+Open Disk Management > right-click Disk 8 > Online > assign letter I: if missing.
 
 ---
 
-## Troubleshooting
+## TODO
 
-### Libraries show empty after migration
-Library paths changed. In Plex Settings > Libraries, edit each library and update the folder paths to match the Docker volume mounts.
-
-### ext4 drives not visible in Docker
-Make sure `wsl --mount` succeeded and the drives are mounted inside WSL2 before starting the container.
-
-### Permission errors on media files
-Check PUID/PGID in docker-compose.yml match the file ownership. Run `id` in WSL2 to find your UID/GID.
-
-### Plex can't find the database
-Ensure the backup was extracted to the right path: `C:\plex\config\Library\Application Support\Plex Media Server\`
+- [ ] After Anime move completes: add E:\Anime to Plex Anime library
+- [ ] Update Sonarr anime root folder from `/i_drive/Anime` to E: mount path
+- [ ] Update timezone in arr stack docker-compose to Europe/Berlin
+- [ ] Verify Radarr root folders are correct after DB restore
+- [ ] Consider moving more content off I: to balance drives
+- [ ] Set up Maintainerr rules for auto-cleanup of watched content
+- [ ] Misc backup from Ubuntu server (UMTK/config, TSSK/config, Scripts, cloudflared) — file at ~/misc-backup.tar.gz on Ubuntu, transfer when ready
