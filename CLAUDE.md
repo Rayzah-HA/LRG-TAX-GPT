@@ -164,6 +164,49 @@ Save raw thoughts to `/braindumps/` as `.md` files. Format: `YYYY-MM-DD.md` or `
 
 ---
 
+## Plex Server Management Protocol
+
+The ANARCHY Plex server has four dedicated slash commands for management:
+
+### `/plex-status` — Full Health Check
+
+Checks all 12 services, drive space, download queues, and Plex connectivity. Outputs a visual dashboard with pass/warn/fail indicators.
+
+### `/plex-cleanup` — Series Audit & Queue Cleanup
+
+Audits Sonarr series list, flags unwanted shows, cleans stuck downloads. **Never deletes files without confirmation.** Maintains a known-unwanted list.
+
+### `/plex-maintenance` — Run UMTK, TSSK, Kometa
+
+Runs all maintenance tools in the correct order. UMTK first (triggers TSSK automatically), then Kometa for collection/overlay refresh.
+
+### `/plex-drives` — Drive Space Monitor
+
+Visual drive inventory with usage bars, alert thresholds, and recommended moves when drives get full.
+
+### Key Server Facts
+
+- **Machine:** ANARCHY (192.168.1.9), Windows 11, Europe/Berlin
+- **Plex:** Native Windows install (NOT Docker) — reads all drives including ext4
+- **Arr Stack:** Docker Desktop (WSL2 backend) — Sonarr, Radarr, SABnzbd, Overseerr, Tautulli, Maintainerr, Tdarr, Posteria, Kometa, UMTK, TSSK
+- **Storage:** ~36 TB across 11 drives (6 media drives)
+- **ext4 drives (J:, K:, L:):** Windows 11 reads natively via drive letters
+- **Known issue:** Disk 8 (I: drive) goes Offline on reboot — fix in Disk Management
+- **Sonarr API key:** 16ef88eaee404fbcba706f3d9abe314a
+- **Docker compose:** W:\docker\docker-compose.yml
+- **App data:** W:\docker\appdata\{service}
+- **PowerShell JSON fix:** Wrap docker exec curl in `cmd /c '...'` with `\"` escaping
+
+### Management Rules
+
+- **"Focus on adding and not removing things"** — Larry's directive
+- Never kill processes without verifying they should be stopped
+- Never delete files without explicit confirmation
+- Plex is native by design — don't try to containerize it
+- When in doubt, ask before acting
+
+---
+
 ## Directory Structure
 
 ```
@@ -174,6 +217,10 @@ Save raw thoughts to `/braindumps/` as `.md` files. Format: `YYYY-MM-DD.md` or `
     weekly-checkin.md       # Weekly business metrics check-in
     newsletter-research.md  # Newsletter research and writing
     brain-dump-analysis.md  # Brain dump insight extraction
+    plex-status.md          # Plex server health check
+    plex-cleanup.md         # Sonarr/Radarr audit & cleanup
+    plex-maintenance.md     # UMTK/TSSK/Kometa maintenance
+    plex-drives.md          # Drive space monitoring
   subagents/
     interest-analyzer.md    # Identifies interests for news
     news-curator.md         # Curates recent relevant news
@@ -183,6 +230,9 @@ Save raw thoughts to `/braindumps/` as `.md` files. Format: `YYYY-MM-DD.md` or `
     newsletter-writer.md    # Writes newsletter drafts
     insight-extractor.md    # Extracts patterns from brain dumps
     brain-dump-analyst.md   # Visualizes brain dump insights
+    plex-health-checker.md  # Checks all Plex services
+    sonarr-auditor.md       # Audits Sonarr series for cleanup
+    drive-monitor.md        # Monitors drive space across media drives
 metrics/
   metrics-history.md        # Historical metrics data
   weekly-report-*.md        # Generated weekly reports
@@ -209,13 +259,13 @@ home-assistant/
   docs/                     # Setup guides and device inventory
   backups/                  # HA backups (git-ignored)
 plex/
-  docker-compose.yml        # Plex Docker Compose config
+  docker-compose.yml        # Plex Docker Compose config (legacy, Plex is native now)
   config/                   # Plex config (git-ignored, restored from backup)
   scripts/
     plex-backup.sh          # Backup script for Ubuntu server
     wsl-mount-ext4.ps1      # PowerShell script to mount ext4 drives in WSL2
   docs/
-    migration-guide.md      # Full Ubuntu → Windows Docker migration plan
+    migration-guide.md      # Current server setup & architecture guide
 ABOUT.md                    # Personal bio and links
 CLAUDE.md                   # This file - project context
 ```
